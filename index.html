@@ -29,6 +29,12 @@
     .avatar-upload:hover .avatar-overlay { opacity: 1; }
     .avatar-overlay { opacity: 0; transition: opacity 0.3s; background: rgba(0,0,0,0.5); }
 
+    /* CSS CHO MOBILE CHIPS */
+    .chip-btn { transition: all 0.2s; border: 1px solid #f3f4f6; }
+    .chip-btn.active { background-color: #2f3640; color: white; border-color: #2f3640; box-shadow: 0 4px 10px -2px rgba(0,0,0,0.2); }
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
     /* CHAT SYSTEM STYLES */
     .chat-btn-float { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; background: #f97316; border-radius: 50%; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; cursor: pointer; transition: transform 0.2s; z-index: 40; }
     .chat-btn-float:hover { transform: scale(1.1); }
@@ -118,6 +124,14 @@
 
     <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-white md:bg-gray-50 pb-20 md:pb-0">
       
+      <div id="mobileFilterBar" class="md:hidden hidden flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3 overflow-x-auto hide-scroll gap-3 sticky top-0 z-20 shadow-[0_4px_6px_-4px_rgba(0,0,0,0.05)]">
+          <button onclick="applyMobileSubFilter('', this)" class="chip-btn active whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-50 text-xs font-bold text-gray-500">Tất cả</button>
+          <button onclick="applyMobileSubFilter('2025', this)" class="chip-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-50 text-xs font-bold text-gray-500">✨ 2025</button>
+          <button onclick="applyMobileSubFilter('2026', this)" class="chip-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-50 text-xs font-bold text-gray-500">🔥 2026</button>
+          <button onclick="applyMobileSubFilter('xe-dien', this)" class="chip-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-50 text-xs font-bold text-gray-500">⚡ Xe máy điện</button>
+          <button onclick="applyMobileSubFilter('xe-dap-dien', this)" class="chip-btn whitespace-nowrap px-4 py-1.5 rounded-full bg-gray-50 text-xs font-bold text-gray-500">🚲 Xe đạp điện</button>
+      </div>
+
       <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth" id="mainScroll">
         
         <section id="heroSection" class="bg-white rounded-3xl p-1 shadow-sm border border-gray-200">
@@ -188,12 +202,27 @@
       </div>
     </main>
 
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-between items-center px-6 py-3 z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button class="nav-mobile-btn active flex flex-col items-center gap-1 text-gray-400 transition" onclick="mobileFilter('all', this)"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] font-medium">Trang chủ</span></button>
-        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition" onclick="mobileFilter('product', this)"><i class="fa-solid fa-motorcycle text-lg"></i><span class="text-[10px] font-medium">Sản phẩm</span></button>
-        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition" onclick="mobileFilter('skill', this)"><i class="fa-solid fa-graduation-cap text-lg"></i><span class="text-[10px] font-medium">Kỹ năng</span></button>
-        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition" onclick="mobileFilter('culture', this)"><i class="fa-solid fa-landmark text-lg"></i><span class="text-[10px] font-medium">Văn hóa</span></button>
-        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition" onclick="mobileFilter('results', this)"><i class="fa-solid fa-chart-line text-lg"></i><span class="text-[10px] font-medium">Kết quả</span></button>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-between items-center px-4 py-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <button class="nav-mobile-btn active flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="mobileFilter('all', this)">
+            <i class="fa-solid fa-house text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Home</span>
+        </button>
+        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="mobileFilter('video', this)">
+            <i class="fa-solid fa-circle-play text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Video</span>
+        </button>
+        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="mobileFilter('product', this)">
+            <i class="fa-solid fa-motorcycle text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Sản phẩm</span>
+        </button>
+        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="mobileFilter('skill', this)">
+            <i class="fa-solid fa-graduation-cap text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Kỹ năng</span>
+        </button>
+        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="mobileFilter('results', this)">
+            <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide">Kết quả</span>
+        </button>
     </nav>
   </div>
 
@@ -370,33 +399,77 @@
         renderLessons();
     };
 
+    // --- [MỚI] MOBILE SUB FILTER LOGIC ---
+    window.applyMobileSubFilter = (keyword, btn) => {
+        // 1. Visual Active State
+        const parent = document.getElementById('mobileFilterBar');
+        parent.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // 2. Reuse Filter Logic
+        filterSubCategory('product', keyword);
+    }
+
     // --- MOBILE HELPER ---
     window.mobileFilter = (cat, btnElement) => {
+        currentSubFilter = null; // Reset sub-filter
+        
         document.querySelectorAll('.nav-mobile-btn').forEach(b => b.classList.remove('active'));
         if(btnElement) btnElement.classList.add('active');
+
+        // [MỚI] TOGGLE SUB-FILTER BAR
+        const filterBar = document.getElementById('mobileFilterBar');
+        if (cat === 'product') {
+            filterBar.classList.remove('hidden');
+            filterBar.classList.add('flex');
+            // Reset to All
+            filterBar.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+            filterBar.querySelector('button:first-child').classList.add('active');
+        } else {
+            filterBar.classList.add('hidden');
+            filterBar.classList.remove('flex');
+        }
+
         if(cat === 'results') { loadUserResults(); currentCategory = 'results'; }
         else { ['resultView','detailView'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById('heroSection').classList.remove('hidden'); document.getElementById('listView').classList.remove('hidden'); currentCategory = cat; renderLessons(); }
     }
 
-    // --- LOAD DATA ---
+    // --- LOAD DATA (UPDATED: CLIENT-SIDE SORT) ---
     async function loadLessons() {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        const userData = userDoc.data();
-        const userRole = userData.role || 'learner';
-        checkLoginBonus(userData); updateUserStatsUI(userData);
+        try {
+            const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+            const userData = userDoc.data();
+            const userRole = userData.role || 'learner';
+            checkLoginBonus(userData); 
+            updateUserStatsUI(userData);
 
-        const q = query(collection(db, "lessons"), orderBy("displayOrder", "asc")); // Sort by custom order
-        const snap = await getDocs(q);
-        let rawLessons = !snap.empty ? snap.docs.map(d => ({id: d.id, ...d.data()})) : (await getDocs(collection(db, "lessons"))).docs.map(d => ({id: d.id, ...d.data()}));
+            // 1. Fetch ALL lessons
+            const snap = await getDocs(collection(db, "lessons"));
+            let rawLessons = snap.docs.map(d => ({id: d.id, ...d.data()}));
 
-        allLessons = rawLessons.filter(lesson => {
-            const allowedRoles = lesson.targetRoles || ['learner']; 
-            if (userRole === 'director') return true;
-            if (userRole === 'sale') return allowedRoles.includes('sale') || allowedRoles.includes('learner');
-            return allowedRoles.includes('learner');
-        });
-        renderLessons();
-        if(allLessons.length) { featuredLessons = allLessons.slice(0, 5); initHeroCarousel(); }
+            // 2. Client-side Sort
+            rawLessons.sort((a, b) => {
+                const orderA = (a.displayOrder !== undefined && a.displayOrder !== null) ? Number(a.displayOrder) : 9999;
+                const orderB = (b.displayOrder !== undefined && b.displayOrder !== null) ? Number(b.displayOrder) : 9999;
+                return orderA - orderB;
+            });
+
+            // 3. Filter by Role
+            allLessons = rawLessons.filter(lesson => {
+                const allowedRoles = lesson.targetRoles || ['learner']; 
+                if (userRole === 'director') return true;
+                if (userRole === 'sale') return allowedRoles.includes('sale') || allowedRoles.includes('learner');
+                return allowedRoles.includes('learner');
+            });
+            
+            renderLessons();
+            if(allLessons.length) { 
+                featuredLessons = allLessons.slice(0, 5); 
+                initHeroCarousel(); 
+            }
+        } catch (e) {
+            console.error("Lỗi tải bài học:", e);
+        }
     }
 
     // --- PROFILE & AVATAR LOGIC ---
