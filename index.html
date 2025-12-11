@@ -87,14 +87,31 @@
     <aside class="hidden md:flex w-64 flex-col bg-[#111827] text-gray-300 flex-shrink-0 h-full p-6">
       <h2 class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-4">Danh mục đào tạo</h2>
       <nav class="space-y-2">
-        <button class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="all"><i class="fa-solid fa-layer-group w-5 text-center"></i> Tất cả bài học</button>
+        <button class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="all" onclick="resetSidebarActive(this); mobileFilter('all', null)"><i class="fa-solid fa-layer-group w-5 text-center"></i> Tất cả bài học</button>
         
-        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="video"><i class="fa-solid fa-circle-play w-5 text-center"></i> Học qua Video</button>
+        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="video" onclick="resetSidebarActive(this); mobileFilter('video', null)"><i class="fa-solid fa-circle-play w-5 text-center"></i> Học qua Video</button>
         
-        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="product"><i class="fa-solid fa-motorcycle w-5 text-center"></i> Kiến thức sản phẩm</button>
-        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="culture"><i class="fa-solid fa-landmark w-5 text-center"></i> Văn hoá & Quy định</button>
-        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="skill"><i class="fa-solid fa-graduation-cap w-5 text-center"></i> Kỹ năng bán hàng</button>
-        <div class="pt-4 mt-4 border-t border-gray-700"><button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="results"><i class="fa-solid fa-chart-line w-5 text-center"></i> Kết quả học tập</button></div>
+        <div class="relative">
+            <button id="btnProductParent" onclick="toggleSubMenu('product-submenu', this)" class="sidebar-item w-full flex items-center justify-between px-4 py-3 rounded-xl transition text-sm group" data-category="product">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-motorcycle w-5 text-center"></i> 
+                    <span>Kiến thức sản phẩm</span>
+                </div>
+                <i class="fa-solid fa-chevron-down text-xs transition-transform duration-300"></i>
+            </button>
+            
+            <div id="product-submenu" class="hidden flex-col mt-1 space-y-1 pl-4 border-l-2 border-gray-700 ml-6 overflow-hidden transition-all duration-300 bg-[#1f2937] rounded-lg py-2">
+                <button onclick="filterSubCategory('product', '2025')" class="w-full text-left px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition flex items-center gap-2"><i class="fa-regular fa-calendar text-[10px]"></i> Sản phẩm 2025</button>
+                <button onclick="filterSubCategory('product', '2026')" class="w-full text-left px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition flex items-center gap-2"><i class="fa-regular fa-calendar-plus text-[10px]"></i> Sản phẩm 2026</button>
+                <button onclick="filterSubCategory('product', 'xe-dien')" class="w-full text-left px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition flex items-center gap-2"><i class="fa-solid fa-bolt text-[10px]"></i> Xe máy điện</button>
+                <button onclick="filterSubCategory('product', 'xe-dap-dien')" class="w-full text-left px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition flex items-center gap-2"><i class="fa-solid fa-bicycle text-[10px]"></i> Xe đạp điện</button>
+                <div class="border-t border-gray-600 my-1"></div>
+                <button onclick="filterSubCategory('product', '')" class="w-full text-left px-4 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 rounded-md transition font-bold">Xem tất cả</button>
+            </div>
+        </div>
+        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="culture" onclick="resetSidebarActive(this); mobileFilter('culture', null)"><i class="fa-solid fa-landmark w-5 text-center"></i> Văn hoá & Quy định</button>
+        <button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="skill" onclick="resetSidebarActive(this); mobileFilter('skill', null)"><i class="fa-solid fa-graduation-cap w-5 text-center"></i> Kỹ năng bán hàng</button>
+        <div class="pt-4 mt-4 border-t border-gray-700"><button class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition text-sm" data-category="results" onclick="resetSidebarActive(this); mobileFilter('results', null)"><i class="fa-solid fa-chart-line w-5 text-center"></i> Kết quả học tập</button></div>
       </nav>
       <div class="mt-auto pt-6 border-t border-gray-800"><button class="w-full bg-white text-gray-900 text-xs font-bold py-2.5 rounded-lg hover:bg-gray-100 transition">Liên hệ Admin</button></div>
     </aside>
@@ -267,6 +284,91 @@
     let currentQuestions = [], userAnswers = {}, currentQIdx = 0, quizStartTime = null, quizTimerInterval = null;
     let studyInterval = null, studySeconds = 0, isUserActive = true, idleTimer = null, heroInterval = null, heroIndex = 0, featuredLessons = [];
     let isChatOpen = false;
+    let currentSubFilter = null; // New variable for sub-filtering
+
+    // --- CONFIG: BEAUTIFUL BADGES ---
+    const categoryConfig = {
+        'product': { label: 'Kiến thức Sản phẩm', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+        'skill':   { label: 'Kỹ năng Bán hàng',   color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        'culture': { label: 'Văn hóa & Quy định', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+        'video':   { label: 'Video Đào tạo',      color: 'bg-red-50 text-red-700 border-red-200' },
+        'default': { label: 'Khác',               color: 'bg-gray-50 text-gray-600 border-gray-200' }
+    };
+
+    // --- UTILS: SHUFFLE ARRAY (FOR QUIZ) ---
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // --- SIDEBAR & FILTER HELPER (FIXED) ---
+    window.resetSidebarActive = (clickedBtn) => {
+        // Reset tất cả nút (bao gồm cả nút cha của menu con)
+        document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+        if(clickedBtn) clickedBtn.classList.add('active');
+        
+        // Nếu không bấm vào nút cha "Sản phẩm", thì đóng menu con lại
+        const btnProductParent = document.getElementById('btnProductParent');
+        const subMenu = document.getElementById('product-submenu');
+        
+        // Kiểm tra xem nút được bấm có phải là nút mở menu con không
+        if (clickedBtn && clickedBtn.id !== 'btnProductParent') {
+             subMenu.classList.add('hidden');
+             const arrow = btnProductParent.querySelector('.fa-chevron-down');
+             if(arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    };
+
+    window.toggleSubMenu = (id, btn) => {
+        const el = document.getElementById(id);
+        const arrow = btn.querySelector('.fa-chevron-down');
+        
+        const isHidden = el.classList.contains('hidden');
+        if (isHidden) {
+            el.classList.remove('hidden');
+            arrow.style.transform = 'rotate(180deg)';
+        } else {
+            el.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+        
+        // Active visual for parent button
+        document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Load default all products
+        currentCategory = 'product';
+        currentSubFilter = null;
+        renderLessons();
+    };
+
+    window.filterSubCategory = (parentCat, keyword) => {
+        currentCategory = parentCat;
+        currentSubFilter = keyword;
+        
+        // Highlight active sub-button (optional styling)
+        const buttons = document.getElementById('product-submenu').querySelectorAll('button');
+        buttons.forEach(b => {
+            // Reset style
+            b.classList.remove('text-white', 'bg-gray-700'); 
+            b.classList.add('text-gray-400');
+            
+            // Check logic
+            const btnText = b.textContent.toLowerCase();
+            const keyCheck = keyword.replace(/-/g, ' ').toLowerCase();
+            
+            // Logic so khớp đơn giản để highlight
+            if((keyword === '' && btnText.includes('tất cả')) || (keyword !== '' && btnText.includes(keyCheck))) {
+                 b.classList.remove('text-gray-400');
+                 b.classList.add('text-white', 'bg-gray-700');
+            }
+        });
+
+        renderLessons();
+    };
 
     // --- MOBILE HELPER ---
     window.mobileFilter = (cat, btnElement) => {
@@ -283,7 +385,7 @@
         const userRole = userData.role || 'learner';
         checkLoginBonus(userData); updateUserStatsUI(userData);
 
-        const q = query(collection(db, "lessons"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "lessons"), orderBy("displayOrder", "asc")); // Sort by custom order
         const snap = await getDocs(q);
         let rawLessons = !snap.empty ? snap.docs.map(d => ({id: d.id, ...d.data()})) : (await getDocs(collection(db, "lessons"))).docs.map(d => ({id: d.id, ...d.data()}));
 
@@ -396,7 +498,8 @@
             ['mousemove', 'keydown', 'scroll', 'click'].forEach(evt => window.addEventListener(evt, resetIdle)); resetIdle();
             
             studyInterval = setInterval(() => {
-                if (isUserActive) { 
+                // ADDED CHECK: !document.hidden (Stop timer if tab is hidden)
+                if (isUserActive && !document.hidden) { 
                     studySeconds++; 
                     const m = Math.floor(studySeconds/60).toString().padStart(2,'0'); 
                     const s = (studySeconds%60).toString().padStart(2,'0'); 
@@ -433,7 +536,7 @@
     function resetHeroInterval() { clearInterval(heroInterval); heroInterval = setInterval(() => { heroIndex = (heroIndex + 1) % featuredLessons.length; updateHeroSlide(); }, 5000); }
     function updateHeroSlide() { const l = featuredLessons[heroIndex]; const img = document.getElementById('heroImage'); const t = document.getElementById('heroTitle'); const d = document.getElementById('heroDesc'); const b = document.getElementById('heroBadge'); img.style.opacity = '0'; t.style.opacity = '0'; d.style.opacity = '0'; b.style.opacity = '0'; setTimeout(() => { img.src = l.bannerUrl || l.image; t.textContent = l.title; d.textContent = l.description || ''; b.textContent = l.category; document.getElementById('heroStartBtn').onclick = () => openLesson(l); const dots = document.getElementById('heroDots').children; for(let i=0; i<dots.length; i++) dots[i].className = `w-2 h-2 rounded-full cursor-pointer transition-all duration-300 ${i===heroIndex ? 'bg-orange-500 w-6' : 'bg-white/50 hover:bg-white'}`; img.style.opacity = '0.6'; t.style.opacity = '1'; d.style.opacity = '1'; b.style.opacity = '1'; }, 300); }
     
-    // --- UPDATED RENDER LESSONS FOR VIDEO FILTER ---
+    // --- UPDATED RENDER LESSONS FOR SUB-FILTER & BADGES ---
     function renderLessons() { 
         const k = document.getElementById('searchInput').value.toLowerCase(); 
         const list = document.getElementById('lessonList'); 
@@ -441,12 +544,21 @@
 
         const filtered = allLessons.filter(l => {
             const matchesSearch = l.title.toLowerCase().includes(k);
-            if (currentCategory === 'all') return matchesSearch;
-            if (currentCategory === 'video') {
-                // Filter for Youtube or MP4 links
-                return matchesSearch && l.contentUrl && (l.contentUrl.includes('youtu') || l.contentUrl.includes('.mp4'));
+            
+            // Logic lọc chính
+            let matchesCategory = false;
+            if (currentCategory === 'all') matchesCategory = true;
+            else if (currentCategory === 'video') matchesCategory = l.contentUrl && (l.contentUrl.includes('youtu') || l.contentUrl.includes('.mp4'));
+            else matchesCategory = l.category === currentCategory;
+
+            // Logic lọc con (Sub-filter) - QUAN TRỌNG
+            let matchesSub = true;
+            if (currentSubFilter) {
+                const contentToCheck = (l.title + " " + (l.description||"")).toLowerCase();
+                matchesSub = contentToCheck.includes(currentSubFilter.toLowerCase());
             }
-            return matchesSearch && l.category === currentCategory;
+
+            return matchesSearch && matchesCategory && matchesSub;
         });
 
         document.getElementById('lessonCount').textContent = filtered.length; 
@@ -454,7 +566,11 @@
         filtered.forEach(l => { 
             const card = document.createElement('div'); 
             card.className = "lesson-card bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer flex flex-col h-full"; 
-            card.innerHTML = `<div class="h-40 relative group"><img src="${l.bannerUrl||l.image}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110"><div class="absolute top-2 left-2 bg-white/90 text-[10px] font-bold px-2 py-1 rounded shadow-sm text-gray-800">${l.category}</div></div><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-sm mb-2 line-clamp-2 text-gray-800">${l.title}</h3><div class="mt-auto text-xs text-gray-400 pt-3 border-t flex justify-between"><span><i class="fa-regular fa-clock"></i> ${l.duration}p</span><span class="text-orange-600 font-bold">Học ngay <i class="fa-solid fa-arrow-right"></i></span></div></div>`; 
+            
+            // Lấy config hiển thị cho Badge
+            const catConf = categoryConfig[l.category] || categoryConfig['default'];
+
+            card.innerHTML = `<div class="h-40 relative group"><img src="${l.bannerUrl||l.image}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110"><div class="absolute top-3 left-3 ${catConf.color} border text-[10px] font-bold px-2.5 py-1 rounded-md shadow-sm uppercase tracking-wide backdrop-blur-sm">${catConf.label}</div></div><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-sm mb-2 line-clamp-2 text-gray-800">${l.title}</h3><div class="mt-auto text-xs text-gray-400 pt-3 border-t flex justify-between"><span><i class="fa-regular fa-clock"></i> ${l.duration}p</span><span class="text-orange-600 font-bold">Học ngay <i class="fa-solid fa-arrow-right"></i></span></div></div>`; 
             card.onclick = () => openLesson(l); 
             list.appendChild(card); 
         }); 
@@ -486,7 +602,43 @@
     }
     
     window.startQuiz = async () => { document.getElementById('startQuizBtnContainer').classList.add('hidden'); document.getElementById('quizSectionContainer').classList.remove('hidden'); document.getElementById('quizSectionContainer').scrollIntoView({behavior:'smooth'}); await initQuiz(currentLesson.id); }
-    async function initQuiz(lid) { const container = document.getElementById('quizSectionContainer'); const content = document.getElementById('quizContent'); const pag = document.getElementById('quizPagination'); const result = document.getElementById('quizResult'); const btn = document.getElementById('submitQuizBtn'); userAnswers = {}; currentQIdx = 0; quizStartTime = new Date(); clearInterval(quizTimerInterval); quizTimerInterval = setInterval(updateTimer, 1000); updateTimer(); result.innerHTML = ''; result.classList.add('hidden'); btn.disabled = false; btn.innerHTML = '<span>NỘP BÀI</span> <i class="fa-solid fa-paper-plane"></i>'; content.innerHTML = '<p class="text-center text-gray-500 py-10"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải câu hỏi...</p>'; pag.innerHTML = ''; const snap = await getDocs(query(collection(db, "questions"), where("lessonId", "==", lid))); currentQuestions = snap.docs.map(d => ({id: d.id, ...d.data()})); if(!currentQuestions.length) { content.innerHTML = '<p class="text-center italic text-gray-400 py-10">Bài học này chưa có câu hỏi kiểm tra.</p>'; btn.disabled = true; clearInterval(quizTimerInterval); document.getElementById('quizTimerDisplay').textContent = "00:00"; return; } renderPagination(); renderCurrentQuestion(); }
+    
+    async function initQuiz(lid) { 
+        const container = document.getElementById('quizSectionContainer'); 
+        const content = document.getElementById('quizContent'); 
+        const pag = document.getElementById('quizPagination'); 
+        const result = document.getElementById('quizResult'); 
+        const btn = document.getElementById('submitQuizBtn'); 
+        userAnswers = {}; 
+        currentQIdx = 0; 
+        quizStartTime = new Date(); 
+        clearInterval(quizTimerInterval); 
+        quizTimerInterval = setInterval(updateTimer, 1000); 
+        updateTimer(); 
+        result.innerHTML = ''; 
+        result.classList.add('hidden'); 
+        btn.disabled = false; 
+        btn.innerHTML = '<span>NỘP BÀI</span> <i class="fa-solid fa-paper-plane"></i>'; 
+        content.innerHTML = '<p class="text-center text-gray-500 py-10"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải câu hỏi...</p>'; 
+        pag.innerHTML = ''; 
+        
+        const snap = await getDocs(query(collection(db, "questions"), where("lessonId", "==", lid))); 
+        currentQuestions = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+        
+        // ADDED SHUFFLE HERE
+        shuffleArray(currentQuestions); 
+        
+        if(!currentQuestions.length) { 
+            content.innerHTML = '<p class="text-center italic text-gray-400 py-10">Bài học này chưa có câu hỏi kiểm tra.</p>'; 
+            btn.disabled = true; 
+            clearInterval(quizTimerInterval); 
+            document.getElementById('quizTimerDisplay').textContent = "00:00"; 
+            return; 
+        } 
+        renderPagination(); 
+        renderCurrentQuestion(); 
+    }
+
     function updateTimer() { const diff = Math.floor((new Date() - quizStartTime) / 1000); document.getElementById('quizTimerDisplay').textContent = `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
     function renderPagination() { const pag = document.getElementById('quizPagination'); pag.innerHTML = ''; currentQuestions.forEach((q, idx) => { const btn = document.createElement('button'); btn.className = `quiz-nav-btn ${idx === currentQIdx ? 'active' : ''} ${userAnswers[q.id] !== undefined ? 'answered' : ''}`; btn.textContent = idx + 1; btn.onclick = () => { currentQIdx = idx; renderPagination(); renderCurrentQuestion(); }; pag.appendChild(btn); }); }
     function renderCurrentQuestion() { const q = currentQuestions[currentQIdx]; let ops = ''; q.options.forEach((opt, idx) => { const chk = userAnswers[q.id] === idx ? 'checked' : ''; ops += `<label class="flex items-start gap-3 p-4 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-200 cursor-pointer transition bg-white shadow-sm mb-2"><input type="radio" name="currentQ" value="${idx}" ${chk} class="mt-1 w-5 h-5 text-orange-600 focus:ring-orange-500 accent-orange-600" onchange="window.selectAnswer('${q.id}', ${idx})"><span class="text-sm md:text-base text-gray-700 font-medium">${opt}</span></label>`; }); document.getElementById('quizContent').innerHTML = `<div class="animate-fade-in"><h3 class="text-lg md:text-xl font-bold text-gray-800 mb-6 leading-relaxed"><span class="text-orange-600">Câu ${currentQIdx + 1}:</span> ${q.text}</h3><div class="flex flex-col">${ops}</div></div>`; }
@@ -566,7 +718,10 @@
         }
     }
 
+    /* ĐÃ COMMENT LẠI ĐỂ SỬA LỖI MENU
     document.querySelectorAll('.sidebar-item').forEach(b => { b.onclick = () => { document.querySelectorAll('.sidebar-item').forEach(x => x.classList.remove('active')); b.classList.add('active'); const cat = b.dataset.category; if(cat === 'results') { loadUserResults(); currentCategory = 'results'; } else { ['resultView','detailView'].forEach(id => document.getElementById(id).classList.add('hidden')); document.getElementById('heroSection').classList.remove('hidden'); document.getElementById('listView').classList.remove('hidden'); currentCategory = cat; renderLessons(); } }; });
+    */
+
     document.getElementById('backToListBtn').onclick = () => { document.getElementById('detailView').classList.add('hidden'); document.getElementById('heroSection').classList.remove('hidden'); document.getElementById('listView').classList.remove('hidden'); document.getElementById('lessonViewer').innerHTML = ''; clearInterval(quizTimerInterval); clearInterval(studyInterval); document.getElementById('studyTimerBox').classList.add('hidden'); };
     document.getElementById('searchInput').addEventListener('keyup', renderLessons);
     document.getElementById('openRegister').onclick = () => document.getElementById('registerBox').classList.toggle('hidden');
