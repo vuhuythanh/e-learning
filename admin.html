@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>YADEA Admin Pro - Secured Portal</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,9 +14,9 @@
   <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
   <style>
-    body { font-family: 'Roboto', sans-serif; }
+    body { font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
     .sidebar-link.active { background: linear-gradient(90deg, #ea580c 0%, #f97316 100%); color: white; box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3); }
-    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .fade-in { animation: fadeIn 0.5s ease-in-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     
     /* CHAT ADMIN CSS */
@@ -25,11 +25,18 @@
     .chat-bubble-admin { max-width: 75%; padding: 10px; border-radius: 10px; font-size: 13px; margin-bottom: 5px; }
     .bubble-me { background: #f97316; color: white; align-self: flex-end; }
     .bubble-user { background: #e5e7eb; color: #374151; align-self: flex-start; }
+    
+    /* Mobile Overlay */
+    #sidebarOverlay { transition: opacity 0.3s; }
+    #sidebarOverlay.hidden { pointer-events: none; opacity: 0; }
+    
+    /* Responsive Table Wrapper */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   </style>
 </head>
-<body class="bg-gray-50 h-screen flex overflow-hidden text-gray-700">
+<body class="bg-gray-50 h-screen flex flex-col overflow-hidden text-gray-700">
 
-  <div id="adminAuthOverlay" class="fixed inset-0 z-50 bg-[#111827] flex items-center justify-center">
+  <div id="adminAuthOverlay" class="fixed inset-0 z-[60] bg-[#111827] flex items-center justify-center px-4">
       <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center fade-in">
           <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-12 mx-auto mb-6">
           <h2 class="text-2xl font-bold text-gray-800 mb-1">ADMIN PORTAL</h2>
@@ -44,64 +51,86 @@
       </div>
   </div>
 
-  <div id="appContainer" class="hidden flex-1 flex h-full w-full">
-      <aside class="w-64 bg-[#111827] text-gray-300 flex flex-col flex-shrink-0">
-        <div class="h-16 flex items-center gap-3 px-6 bg-[#0f172a]">
-            <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-6 w-auto">
-            <h1 class="font-bold text-white text-sm">ADMIN PORTAL</h1>
+  <div id="appContainer" class="hidden flex-1 flex h-full w-full relative">
+      
+      <div class="md:hidden absolute top-0 left-0 w-full h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-30 shadow-sm">
+          <div class="flex items-center gap-3">
+              <button onclick="toggleSidebar()" class="text-gray-600 hover:text-orange-600 p-2"><i class="fa-solid fa-bars text-xl"></i></button>
+              <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-6 w-auto">
+          </div>
+          <div class="font-bold text-xs text-orange-600 uppercase">Admin Mobile</div>
+      </div>
+
+      <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden glass"></div>
+
+      <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-64 bg-[#111827] text-gray-300 flex flex-col z-50 transform -translate-x-full md:translate-x-0 md:relative transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+        <div class="h-16 flex items-center justify-between px-6 bg-[#0f172a]">
+            <div class="flex items-center gap-3">
+                <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-6 w-auto">
+                <h1 class="font-bold text-white text-sm">ADMIN PORTAL</h1>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
         <div class="px-6 py-4 border-b border-gray-800">
             <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs">AD</div><div class="overflow-hidden"><div class="text-xs font-bold text-white truncate" id="adminNameDisplay">Admin</div><div class="text-[10px] text-green-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Online</div></div></div>
         </div>
-        <nav class="flex-1 px-3 py-6 space-y-1">
-          <button onclick="switchTab('dashboard')" id="tabDashboard" class="sidebar-link active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard KPI</button>
-          <button onclick="switchTab('lessons')" id="tabLessons" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-layer-group w-5"></i> Kho bài học</button>
-          <button onclick="switchTab('users')" id="tabUsers" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-users w-5"></i> Quản lý User <span id="pendingCount" class="hidden ml-auto bg-red-500 text-white text-[10px] px-1.5 rounded-full">0</span></button>
-          <button onclick="switchTab('progress')" id="tabProgress" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-bars-progress w-5"></i> Tiến độ đào tạo</button>
-          <button onclick="switchTab('reports')" id="tabReports" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-trophy w-5"></i> Bảng xếp hạng</button>
-          <div class="pt-4 mt-4 border-t border-gray-700"><p class="px-3 text-[10px] uppercase font-bold text-gray-500 mb-2">Enterprise Data</p><button onclick="switchTab('shops')" id="tabShops" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-store w-5"></i> Dữ liệu Đại lý</button></div>
-          <div class="pt-4 mt-4 border-t border-gray-700"><button onclick="switchTab('chat')" id="tabChat" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-comments w-5"></i> Hỗ trợ / Chat <span id="chatUnreadCount" class="hidden bg-red-600 text-white text-[10px] px-1.5 rounded-full ml-auto">0</span></button></div>
+        <nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+          <button onclick="switchTab('dashboard')" id="tabDashboard" class="sidebar-link active w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard KPI</button>
+          <button onclick="switchTab('lessons')" id="tabLessons" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-layer-group w-5"></i> Kho bài học</button>
+          <button onclick="switchTab('users')" id="tabUsers" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-users w-5"></i> Quản lý User <span id="pendingCount" class="hidden ml-auto bg-red-500 text-white text-[10px] px-1.5 rounded-full">0</span></button>
+          <button onclick="switchTab('progress')" id="tabProgress" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-bars-progress w-5"></i> Tiến độ đào tạo</button>
+          <button onclick="switchTab('reports')" id="tabReports" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-trophy w-5"></i> Bảng xếp hạng</button>
+          <div class="pt-4 mt-4 border-t border-gray-700"><p class="px-3 text-[10px] uppercase font-bold text-gray-500 mb-2">Enterprise Data</p><button onclick="switchTab('shops')" id="tabShops" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-store w-5"></i> Dữ liệu Đại lý</button></div>
+          <div class="pt-4 mt-4 border-t border-gray-700"><button onclick="switchTab('chat')" id="tabChat" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-comments w-5"></i> Hỗ trợ / Chat <span id="chatUnreadCount" class="hidden bg-red-600 text-white text-[10px] px-1.5 rounded-full ml-auto">0</span></button></div>
         </nav>
-        <div class="p-4 border-t border-gray-800"><button id="adminLogoutBtn" class="flex gap-2 text-sm text-gray-400 hover:text-white transition w-full items-center"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</button></div>
+        <div class="p-4 border-t border-gray-800"><button id="adminLogoutBtn" class="flex gap-2 text-sm text-gray-400 hover:text-white transition w-full items-center px-2 py-2"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</button></div>
       </aside>
 
-      <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+      <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50 pt-14 md:pt-0">
         
-        <div id="viewDashboard" class="flex-1 flex flex-col h-full overflow-y-auto p-6 scroll-smooth">
-            <header class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-bold text-gray-800">Thống Kê Hiệu Suất</h2><p class="text-sm text-gray-500">Tổng hợp KPI theo Shop, Vùng và Nhân sự</p></div><div class="flex gap-3"><select id="dashFilterLesson" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none w-48"><option value="all">-- Tất cả bài học --</option></select><select id="dashFilterDirector" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none w-40"><option value="all">-- Tất cả GĐKV --</option></select><button onclick="exportKPIDashboard()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo</button><button onclick="loadDashboard(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-rotate"></i> Làm mới</button></div></header>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div id="viewDashboard" class="flex-1 flex flex-col h-full overflow-y-auto p-4 md:p-6 scroll-smooth">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div><h2 class="text-xl md:text-2xl font-bold text-gray-800">Thống Kê Hiệu Suất</h2><p class="text-sm text-gray-500">Tổng hợp KPI theo Shop, Vùng và Nhân sự</p></div>
+                <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                    <select id="dashFilterLesson" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none flex-1 md:w-48"><option value="all">-- Tất cả bài học --</option></select>
+                    <select id="dashFilterDirector" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none flex-1 md:w-40"><option value="all">-- Tất cả GĐKV --</option></select>
+                    <button onclick="loadDashboard(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-md"><i class="fa-solid fa-rotate"></i></button>
+                    <button onclick="exportKPIDashboard()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-md"><i class="fa-solid fa-file-excel"></i> Xuất</button>
+                </div>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
                 <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Tỷ lệ Hoàn Thành</p><h3 id="kpiRate" class="text-3xl font-bold text-gray-800">0%</h3></div><div class="z-10"><span class="text-xs font-medium text-green-500 bg-green-50 px-2 py-1 rounded-full">Toàn quốc</span></div><i class="fa-solid fa-chart-pie absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
                 <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Điểm Trung Bình</p><h3 id="kpiAvgScore" class="text-3xl font-bold text-blue-600">0.0</h3></div><div class="z-10"><span class="text-xs text-gray-400">Thang điểm 100</span></div><i class="fa-solid fa-graduation-cap absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
                 <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Shop Đạt Chuẩn</p><h3 id="kpiShopPass" class="text-3xl font-bold text-green-600">0</h3></div><div class="z-10"><span id="kpiShopTotal" class="text-xs text-gray-500">trên tổng số 0 shop</span></div><i class="fa-solid fa-store absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
                 <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Nhân Sự Tham Gia</p><h3 id="kpiUserActive" class="text-3xl font-bold text-purple-600">0</h3></div><div class="z-10"><span class="text-xs text-gray-400">Đã làm bài thi</span></div><i class="fa-solid fa-users absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-medal text-yellow-500"></i> Top 10 Cửa Hàng (Điểm TB)</h3><div id="chartTopShops" class="w-full h-80"></div></div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-graduate text-blue-500"></i> Top 10 Nhân Viên (Điểm Cao)</h3><div id="chartTopStaff" class="w-full h-80"></div></div>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fa-solid fa-medal text-yellow-500"></i> Top 10 Cửa Hàng (Điểm TB)</h3><div id="chartTopShops" class="w-full h-64 md:h-80"></div></div>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fa-solid fa-user-graduate text-blue-500"></i> Top 10 Nhân Viên (Điểm Cao)</h3><div id="chartTopStaff" class="w-full h-64 md:h-80"></div></div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-red-500"></i> Bản Đồ Nhiệt: Tỷ Lệ Hoàn Thành Theo Tỉnh/Thành</h3><div id="chartRegionMap" class="w-full h-96"></div></div>
+            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-8"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fa-solid fa-map-location-dot text-red-500"></i> Bản Đồ Nhiệt: Tỷ Lệ Hoàn Thành</h3><div id="chartRegionMap" class="w-full h-80 md:h-96"></div></div>
         </div>
 
         <div id="viewLessons" class="hidden flex-1 flex flex-col h-full bg-white">
-            <header class="h-16 bg-white border-b flex justify-between items-center px-6"><h2 class="text-xl font-bold">Quản lý bài học</h2><button onclick="resetForm()" class="bg-gray-900 text-white text-sm px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> Tạo mới</button></header>
-            <div class="flex-1 overflow-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-2 flex flex-col h-[calc(100vh-140px)]">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-4 md:px-6 flex-shrink-0"><h2 class="text-lg md:text-xl font-bold">Quản lý bài học</h2><button onclick="resetForm()" class="bg-gray-900 text-white text-xs md:text-sm px-3 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> Tạo mới</button></header>
+            <div class="flex-1 overflow-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-2 flex flex-col h-[300px] lg:h-[calc(100vh-140px)]">
                     <div class="p-2 border-b mb-2">
                         <input id="searchLessonInput" onkeyup="filterAdminLessons()" placeholder="🔍 Tìm nhanh bài học..." class="w-full border bg-gray-50 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-500 transition">
                     </div>
                     <div id="lessonList" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
                 </div>
                 
-                <div class="lg:col-span-8 space-y-6">
-                    <div class="bg-white rounded-2xl shadow-sm border p-6">
+                <div class="lg:col-span-8 space-y-6 pb-20 lg:pb-0">
+                    <div class="bg-white rounded-2xl shadow-sm border p-4 md:p-6">
                         <h3 id="formTitle" class="font-bold mb-4">Thông tin bài học</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="col-span-2"><label class="text-xs font-bold">Tiêu đề (*)</label><input id="inpTitle" class="w-full border rounded p-2 text-sm focus:border-orange-500 outline-none"></div>
                             <div class="col-span-2 bg-blue-50 p-3 rounded border border-blue-100">
                                 <label class="text-xs font-bold text-blue-800 mb-2 block"><i class="fa-solid fa-user-lock"></i> Đối tượng xem:</label>
-                                <div class="flex gap-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleLearner" checked class="accent-blue-600"> <span class="text-sm">Nhân viên</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleSale" class="accent-blue-600"> <span class="text-sm font-bold text-orange-600">Sale Team</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleDirector" class="accent-blue-600"> <span class="text-sm font-bold text-purple-600">GĐKV</span></label></div>
+                                <div class="flex gap-4 flex-wrap"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleLearner" checked class="accent-blue-600"> <span class="text-sm">Nhân viên</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleSale" class="accent-blue-600"> <span class="text-sm font-bold text-orange-600">Sale Team</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleDirector" class="accent-blue-600"> <span class="text-sm font-bold text-purple-600">GĐKV</span></label></div>
                             </div>
-                            <div>
+                            <div class="col-span-2 md:col-span-1">
                                 <label class="text-xs font-bold">Danh mục</label>
                                 <select id="inpCategory" onchange="toggleSubInput()" class="w-full border rounded p-2 text-sm">
                                     <option value="video">Học qua Video</option>
@@ -110,7 +139,7 @@
                                     <option value="culture">Văn hoá</option>
                                 </select>
                             </div>
-                            <div id="divSubTag" class="hidden fade-in">
+                            <div id="divSubTag" class="hidden fade-in col-span-2 md:col-span-1">
                                 <label class="text-xs font-bold text-orange-600">Phân loại (Năm/Dòng xe)</label>
                                 <select id="inpSubTag" class="w-full border border-orange-200 bg-orange-50 rounded p-2 text-sm font-bold text-gray-700 outline-none focus:border-orange-500">
                                     <option value="">-- Không chọn --</option>
@@ -120,20 +149,20 @@
                                     <option value="xe-dap-dien">Xe đạp điện</option>
                                 </select>
                             </div>
-                            <div><label class="text-xs font-bold">Thời lượng (hiển thị)</label><input id="inpDuration" class="w-full border rounded p-2 text-sm" placeholder="VD: 15"></div>
-                            <div><label class="text-xs font-bold text-green-600">Thời gian yêu cầu (phút)</label><input id="inpMinTime" type="number" value="5" class="w-full border rounded p-2 text-sm focus:border-green-500 font-bold text-green-700" placeholder="Mặc định: 5"></div>
+                            <div class="col-span-2 md:col-span-1"><label class="text-xs font-bold">Thời lượng (phút)</label><input id="inpDuration" class="w-full border rounded p-2 text-sm" placeholder="VD: 15"></div>
+                            <div class="col-span-2 md:col-span-1"><label class="text-xs font-bold text-green-600">Yêu cầu tối thiểu (phút)</label><input id="inpMinTime" type="number" value="5" class="w-full border rounded p-2 text-sm focus:border-green-500 font-bold text-green-700" placeholder="Mặc định: 5"></div>
                             <div class="col-span-2"><label class="text-xs font-bold">Link (Youtube/PDF) (*)</label><input id="inpContentUrl" class="w-full border rounded p-2 text-sm"></div>
                             <div class="col-span-2"><label class="text-xs font-bold">Link Ảnh</label><input id="inpImage" class="w-full border rounded p-2 text-sm"></div>
                             <div class="col-span-2"><label class="text-xs font-bold">Mô tả</label><textarea id="inpDesc" rows="3" class="w-full border rounded p-2 text-sm"></textarea></div>
                         </div>
                         <div class="mt-4 flex justify-between"><button id="btnDeleteLesson" class="hidden text-red-500 text-xs font-bold">Xóa</button><button id="btnSaveLesson" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-orange-600">Lưu</button></div>
                     </div>
-                    <div id="quizSection" class="hidden bg-white rounded-2xl shadow-sm border p-6">
+                    <div id="quizSection" class="hidden bg-white rounded-2xl shadow-sm border p-4 md:p-6">
                         <h3 class="font-bold mb-4 flex justify-between items-center"><span>Câu hỏi trắc nghiệm</span><button id="btnCancelEditQ" class="hidden text-xs text-gray-500 hover:text-gray-800 underline" onclick="cancelEditQ()">Hủy sửa</button></h3>
                         <div class="bg-gray-50 p-4 rounded border border-dashed mb-4 transition-colors" id="quizInputBox">
                             <input id="qText" placeholder="Nội dung câu hỏi..." class="w-full border p-2 rounded mb-2 text-sm font-medium focus:border-orange-500 outline-none">
-                            <div class="grid grid-cols-2 gap-2 mb-2"><input id="qOp0" placeholder="Đáp án A" class="border p-2 text-sm rounded"><input id="qOp1" placeholder="Đáp án B" class="border p-2 text-sm rounded"><input id="qOp2" placeholder="Đáp án C" class="border p-2 text-sm rounded"><input id="qOp3" placeholder="Đáp án D" class="border p-2 text-sm rounded"></div>
-                            <div class="flex justify-between items-center"><div class="flex items-center gap-2"><span class="text-xs font-bold">Đúng:</span><select id="qCorrect" class="border p-1 text-sm rounded font-bold text-orange-600"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><button id="btnAddQuestion" class="bg-gray-800 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-black transition">Thêm câu hỏi</button></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2"><input id="qOp0" placeholder="Đáp án A" class="border p-2 text-sm rounded"><input id="qOp1" placeholder="Đáp án B" class="border p-2 text-sm rounded"><input id="qOp2" placeholder="Đáp án C" class="border p-2 text-sm rounded"><input id="qOp3" placeholder="Đáp án D" class="border p-2 text-sm rounded"></div>
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-3"><div class="flex items-center gap-2"><span class="text-xs font-bold">Đúng:</span><select id="qCorrect" class="border p-1 text-sm rounded font-bold text-orange-600"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><button id="btnAddQuestion" class="bg-gray-800 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-black transition w-full md:w-auto">Thêm câu hỏi</button></div>
                         </div>
                         <div id="questionList" class="space-y-2"></div>
                     </div>
@@ -142,65 +171,64 @@
         </div>
 
         <div id="viewUsers" class="hidden flex-1 flex flex-col h-full bg-gray-50">
-            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
-                <h2 class="text-xl font-bold">Quản lý User</h2>
-                <div class="flex gap-2 items-center">
-                    <select id="filterUserLesson" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-blue-600 w-48 font-bold">
-                        <option value="all">-- Kiểm tra tiến độ bài --</option>
+            <header class="h-auto md:h-16 bg-white border-b flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-3 gap-3">
+                <h2 class="text-lg md:text-xl font-bold">Quản lý User</h2>
+                <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+                    <select id="filterUserLesson" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-blue-600 flex-1 md:flex-none">
+                        <option value="all">-- Kiểm tra tiến độ --</option>
                     </select>
-                    <input id="searchUser" onkeyup="renderUserTable()" placeholder="Tìm tên hoặc DVN..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600 w-40">
-                    <select id="filterUserStatus" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600"><option value="all">-- Trạng thái --</option><option value="pending">Chờ duyệt</option><option value="active">Hoạt động</option><option value="banned">Đã khóa</option></select>
-                    <div class="w-[1px] h-6 bg-gray-300 mx-1"></div>
-                    <span id="userCountBadge" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">0 users</span>
-                    <button onclick="loadUsers(true)" class="text-blue-600 hover:text-blue-800 text-sm font-bold ml-2"><i class="fa-solid fa-cloud-arrow-down"></i> Tải tất cả</button>
+                    <input id="searchUser" onkeyup="renderUserTable()" placeholder="Tìm tên/DVN..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600 w-full md:w-40">
+                    <select id="filterUserStatus" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600 flex-1 md:flex-none"><option value="all">-- Trạng thái --</option><option value="pending">Chờ duyệt</option><option value="active">Hoạt động</option></select>
+                    <button onclick="loadUsers(true)" class="text-blue-600 hover:text-blue-800 text-sm font-bold ml-1"><i class="fa-solid fa-cloud-arrow-down"></i></button>
                 </div>
             </header>
-            <div class="p-6 max-w-7xl mx-auto w-full">
-                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50 text-xs uppercase text-gray-500">
-                            <tr>
-                                <th class="p-4">Tên</th>
-                                <th class="p-4">DVN</th>
-                                <th class="p-4">Email</th>
-                                <th class="p-4" id="colDynamicTitle">Điểm & Sao</th>
-                                <th class="p-4">Vai trò</th>
-                                <th class="p-4">Trạng thái</th>
-                                <th class="p-4 text-right">Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody" class="text-sm divide-y text-gray-700"></tbody>
-                    </table>
+            <div class="p-4 md:p-6 max-w-7xl mx-auto w-full">
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col">
+                    <div class="table-responsive">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                                <tr>
+                                    <th class="p-4">Tên</th>
+                                    <th class="p-4">DVN</th>
+                                    <th class="p-4">Email</th>
+                                    <th class="p-4" id="colDynamicTitle">Điểm & Sao</th>
+                                    <th class="p-4">Vai trò</th>
+                                    <th class="p-4">Trạng thái</th>
+                                    <th class="p-4 text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="text-sm divide-y text-gray-700"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="viewProgress" class="hidden flex-1 flex flex-col h-full bg-gray-50">
-            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
-                <h2 class="text-xl font-bold">Tiến độ đào tạo</h2>
-                <div class="flex gap-2">
-                    <select id="progressFilterLesson" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-bold text-blue-600 w-64 shadow-sm">
+            <header class="h-auto md:h-16 bg-white border-b flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-3 gap-3">
+                <h2 class="text-lg md:text-xl font-bold">Tiến độ đào tạo</h2>
+                <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                    <select id="progressFilterLesson" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-bold text-blue-600 flex-1 md:w-64 shadow-sm">
                         <option value="all">-- Chọn bài học --</option>
                     </select>
-                    <select id="progressFilterStatus" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-medium text-gray-600">
+                    <select id="progressFilterStatus" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-medium text-gray-600 flex-1 md:w-auto">
                         <option value="all">Tất cả</option>
                         <option value="done">Đã học</option>
                         <option value="not">Chưa học</option>
                     </select>
-                    <button onclick="exportProgressExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
-                    <button onclick="loadProgress()" class="text-gray-500 hover:text-blue-600 px-2" title="Làm mới"><i class="fa-solid fa-rotate"></i></button>
+                    <button onclick="exportProgressExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất</button>
                 </div>
             </header>
-            <div class="p-6 max-w-7xl mx-auto w-full flex flex-col h-full">
-                <div class="flex gap-4 mb-4 text-xs font-bold text-gray-500 uppercase tracking-wide">
-                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Tổng nhân sự: <span class="text-gray-900 text-sm ml-1" id="progTotal">0</span></div>
-                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Đã học: <span class="text-green-600 text-sm ml-1" id="progDone">0</span></div>
-                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Chưa học: <span class="text-red-500 text-sm ml-1" id="progNot">0</span></div>
-                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Tỷ lệ: <span class="text-blue-600 text-sm ml-1" id="progRate">0%</span></div>
+            <div class="p-4 md:p-6 max-w-7xl mx-auto w-full flex flex-col h-full">
+                <div class="flex flex-wrap gap-2 mb-4 text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    <div class="bg-white px-3 py-2 rounded-lg border shadow-sm flex-1 md:flex-none text-center">Tổng: <span class="text-gray-900 text-sm ml-1" id="progTotal">0</span></div>
+                    <div class="bg-white px-3 py-2 rounded-lg border shadow-sm flex-1 md:flex-none text-center">Đã học: <span class="text-green-600 text-sm ml-1" id="progDone">0</span></div>
+                    <div class="bg-white px-3 py-2 rounded-lg border shadow-sm flex-1 md:flex-none text-center">Chưa học: <span class="text-red-500 text-sm ml-1" id="progNot">0</span></div>
+                    <div class="bg-white px-3 py-2 rounded-lg border shadow-sm flex-1 md:flex-none text-center">Tỷ lệ: <span class="text-blue-600 text-sm ml-1" id="progRate">0%</span></div>
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 flex flex-col">
-                    <div class="overflow-auto">
-                        <table class="w-full text-left" id="progressTable">
+                    <div class="table-responsive">
+                        <table class="w-full text-left whitespace-nowrap" id="progressTable">
                             <thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0">
                                 <tr>
                                     <th class="p-4 w-12">#</th>
@@ -218,51 +246,58 @@
         </div>
 
         <div id="viewReports" class="hidden flex-1 flex flex-col h-full bg-gray-50">
-            <header class="h-16 bg-white border-b flex justify-between items-center px-6"><h2 class="text-xl font-bold">Bảng xếp hạng</h2><div class="flex gap-3"><select id="reportFilterLesson" onchange="loadReports()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white"><option value="all">-- Tất cả bài học --</option></select><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel (Full)</button><button onclick="loadReports(true)" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100">Tải tất cả</button></div></header>
-            <div class="p-6 max-w-7xl mx-auto w-full h-full flex flex-col"><div class="grid grid-cols-3 gap-4 mb-4"><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Tổng lượt thi</span><span id="statTotal" class="text-xl font-bold text-gray-800">0</span></div><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Đậu (100 điểm)</span><span id="statPass" class="text-xl font-bold text-green-600">0</span></div><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Rớt (<100 điểm)</span><span id="statFail" class="text-xl font-bold text-red-600">0</span></div></div><div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="overflow-auto"><table class="w-full text-left" id="reportTable"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0"><tr><th class="p-4 w-16">Hạng</th><th class="p-4">Nhân viên</th><th class="p-4">Bài học</th><th class="p-4 text-center">Điểm (100)</th><th class="p-4 text-center">Trạng thái</th><th class="p-4">Thời gian</th><th class="p-4">Ngày thi</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="reportTableBody" class="text-sm divide-y"></tbody></table></div></div></div>
+            <header class="h-auto md:h-16 bg-white border-b flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-3 gap-3"><h2 class="text-lg md:text-xl font-bold">Bảng xếp hạng</h2><div class="flex gap-3 w-full md:w-auto"><select id="reportFilterLesson" onchange="loadReports()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white flex-1 md:w-auto"><option value="all">-- Tất cả bài học --</option></select><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất</button><button onclick="loadReports(true)" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100">Tải tất</button></div></header>
+            <div class="p-4 md:p-6 max-w-7xl mx-auto w-full h-full flex flex-col"><div class="grid grid-cols-3 gap-2 md:gap-4 mb-4"><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Tổng lượt</span><span id="statTotal" class="text-lg md:text-xl font-bold text-gray-800">0</span></div><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Đậu (100đ)</span><span id="statPass" class="text-lg md:text-xl font-bold text-green-600">0</span></div><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Rớt (<100)</span><span id="statFail" class="text-lg md:text-xl font-bold text-red-600">0</span></div></div><div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="table-responsive"><table class="w-full text-left whitespace-nowrap" id="reportTable"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0"><tr><th class="p-4 w-16">Hạng</th><th class="p-4">Nhân viên</th><th class="p-4">Bài học</th><th class="p-4 text-center">Điểm (100)</th><th class="p-4 text-center">Trạng thái</th><th class="p-4">Thời gian</th><th class="p-4">Ngày thi</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="reportTableBody" class="text-sm divide-y"></tbody></table></div></div></div>
         </div>
 
         <div id="viewShops" class="hidden flex-1 flex flex-col h-full bg-gray-50">
-            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
-                <h2 class="text-xl font-bold">Dữ liệu Đại lý (Shops)</h2>
-                <div class="flex gap-2">
+            <header class="h-auto md:h-16 bg-white border-b flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-3 gap-3">
+                <h2 class="text-lg md:text-xl font-bold">Dữ liệu Đại lý</h2>
+                <div class="flex flex-wrap gap-2 w-full md:w-auto">
                     <input type="file" id="inpImportShop" class="hidden" accept=".xlsx, .xls" onchange="handleImportShop(this)">
-                    <button onclick="exportShopData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
-                    <button onclick="document.getElementById('inpImportShop').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-cloud-arrow-up"></i> Import Excel</button>
+                    <button onclick="exportShopData()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất</button>
+                    <button onclick="document.getElementById('inpImportShop').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-cloud-arrow-up"></i> Import</button>
                     <button onclick="loadShops()" class="text-gray-500 hover:text-orange-500 px-2"><i class="fa-solid fa-rotate"></i></button>
                 </div>
             </header>
-            <div class="p-6 max-w-[1800px] mx-auto w-full h-full flex flex-col">
-                <div class="flex gap-3 mb-4">
-                    <select id="filterShopLesson" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-64 font-bold text-blue-600 shadow-sm"><option value="all">-- Chọn bài học để check tiến độ --</option></select>
-                    <select id="filterShopStatus" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-40 font-bold text-gray-600"><option value="all">-- Tất cả --</option><option value="done" class="text-green-600">Đã học</option><option value="not_yet" class="text-red-600">Chưa học</option></select>
-                    <input id="searchShop" onkeyup="loadShops()" placeholder="Tìm DVN, Tên shop..." class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-80">
+            <div class="p-4 md:p-6 max-w-[1800px] mx-auto w-full h-full flex flex-col">
+                <div class="flex flex-col md:flex-row gap-3 mb-4">
+                    <select id="filterShopLesson" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none flex-1 md:w-64 font-bold text-blue-600 shadow-sm"><option value="all">-- Check tiến độ bài --</option></select>
+                    <select id="filterShopStatus" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none flex-1 md:w-40 font-bold text-gray-600"><option value="all">-- Tất cả --</option><option value="done" class="text-green-600">Đã học</option><option value="not_yet" class="text-red-600">Chưa học</option></select>
+                    <input id="searchShop" onkeyup="loadShops()" placeholder="Tìm DVN, Tên shop..." class="bg-white border rounded px-3 py-1.5 text-sm outline-none flex-1 md:w-80">
                 </div>
-                <div class="mb-2 text-xs text-gray-500 flex gap-4 uppercase font-bold tracking-wide">
+                <div class="mb-2 text-xs text-gray-500 flex flex-wrap gap-4 uppercase font-bold tracking-wide">
                      <span>Tổng: <b id="shopStatTotal" class="text-gray-800">0</b></span>
                      <span>Đã học: <b id="shopStatDone" class="text-green-600">-</b></span>
                      <span>Chưa học: <b id="shopStatNot" class="text-red-600">-</b></span>
                      <span>Tỷ lệ: <b id="shopStatRate" class="text-blue-600">-</b></span>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="overflow-auto"><table class="w-full text-left min-w-[1200px]"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0 z-10"><tr><th class="p-4 w-24">Mã CH</th><th class="p-4 w-64">Tên Đại lý</th><th class="p-4">Khu vực / GĐKV</th><th class="p-4">Sale Rep</th><th class="p-4">Địa chỉ</th><th class="p-4 text-center w-32">Trạng thái</th></tr></thead><tbody id="shopTableBody" class="text-sm divide-y text-gray-700"></tbody></table></div></div>
+                <div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col">
+                    <div class="table-responsive">
+                        <table class="w-full text-left whitespace-nowrap min-w-[1000px]">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0 z-10"><tr><th class="p-4 w-24">Mã CH</th><th class="p-4 w-64">Tên Đại lý</th><th class="p-4">Khu vực / GĐKV</th><th class="p-4">Sale Rep</th><th class="p-4">Địa chỉ</th><th class="p-4 text-center w-32">Trạng thái</th></tr></thead>
+                            <tbody id="shopTableBody" class="text-sm divide-y text-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="viewChat" class="hidden flex-1 flex flex-col h-full bg-white">
-            <div class="flex h-full">
-                <div class="w-72 border-r border-gray-200 bg-gray-50 flex flex-col">
+            <div class="flex h-full flex-col md:flex-row">
+                <div class="w-full md:w-72 border-r border-gray-200 bg-gray-50 flex flex-col h-1/3 md:h-full">
                     <div class="p-4 border-b font-bold text-sm text-gray-600 uppercase">Danh sách hỗ trợ</div>
                     <div id="chatUserList" class="flex-1 overflow-y-auto"></div>
                 </div>
-                <div class="flex-1 flex flex-col">
-                    <div class="h-16 border-b flex items-center px-6 bg-white justify-between">
-                        <div class="font-bold text-lg" id="chatHeaderName">Chọn học viên để chat</div>
-                        <div class="text-xs text-gray-400" id="chatHeaderDvn"></div>
+                <div class="flex-1 flex flex-col h-2/3 md:h-full">
+                    <div class="h-16 border-b flex items-center px-4 md:px-6 bg-white justify-between flex-shrink-0">
+                        <div class="font-bold text-base md:text-lg truncate mr-2" id="chatHeaderName">Chọn học viên</div>
+                        <div class="text-xs text-gray-400 whitespace-nowrap" id="chatHeaderDvn"></div>
                     </div>
-                    <div id="adminChatMessages" class="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col gap-2"></div>
-                    <div class="p-4 bg-white border-t flex gap-2">
+                    <div id="adminChatMessages" class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 flex flex-col gap-2"></div>
+                    <div class="p-3 md:p-4 bg-white border-t flex gap-2 flex-shrink-0">
                         <input id="adminChatInput" class="flex-1 border rounded-lg px-4 py-2 text-sm outline-none focus:border-orange-500" placeholder="Trả lời..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
-                        <button onclick="sendAdminMsg()" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-orange-700"><i class="fa-solid fa-paper-plane"></i></button>
+                        <button onclick="sendAdminMsg()" class="bg-orange-600 text-white px-4 md:px-6 py-2 rounded-lg font-bold hover:bg-orange-700"><i class="fa-solid fa-paper-plane"></i></button>
                     </div>
                 </div>
             </div>
@@ -285,6 +320,21 @@
     let shopNameMap = {}; 
     let cachedAdminLessons = [];
     
+    // --- MOBILE SIDEBAR LOGIC ---
+    window.toggleSidebar = () => {
+        const sidebar = document.getElementById('mainSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        
+        if (isClosed) {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    };
+
     // UTILS
     const normalize = (str) => str ? String(str).trim().toUpperCase() : '';
 
@@ -384,6 +434,12 @@
     document.getElementById('adminLogoutBtn').onclick = () => signOut(auth);
 
     window.switchTab = function(t) {
+        // Auto close sidebar on mobile when clicking a link
+        if(window.innerWidth < 768) {
+            document.getElementById('mainSidebar').classList.add('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.add('hidden');
+        }
+
         ['viewLessons','viewUsers','viewReports','viewShops','viewDashboard','viewChat','viewProgress'].forEach(x=>document.getElementById(x).classList.add('hidden'));
         ['tabLessons','tabUsers','tabReports','tabShops','tabDashboard','tabChat','tabProgress'].forEach(x=>document.getElementById(x).classList.remove('active'));
         document.getElementById('view'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('hidden');
@@ -501,7 +557,7 @@
         if(filterStatus !== 'all') displayList = displayList.filter(u => u.status === filterStatus);
         if(search) displayList = displayList.filter(u => (u.name&&u.name.toLowerCase().includes(search)) || (u.dvnCode&&u.dvnCode.toLowerCase().includes(search)));
         
-        document.getElementById('userCountBadge').textContent = `Hiển thị ${displayList.length} user`; 
+        document.getElementById('userCountBadge') ? document.getElementById('userCountBadge').textContent = `Hiển thị ${displayList.length} user` : null; 
         tb.innerHTML = '';
         
         if(displayList.length === 0) { tb.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-400">Không tìm thấy user nào.</td></tr>'; return; }
@@ -626,7 +682,7 @@
                 const isDone = lessonId !== 'all' && finishedDvns.has(normalize(s.dvn)); 
                 if(isDone) doneCnt++; 
                 const statusHtml = lessonId === 'all' ? '<span class="text-gray-400 text-xs">--</span>' : (isDone ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">ĐÃ HỌC</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-xs">CHƯA HỌC</span>'); 
-                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 font-bold text-gray-800">${s.dvn}</td><td class="p-4 text-gray-700 font-medium">${s.name}</td><td class="p-4 text-xs"><div class="font-bold text-gray-700">${s.director || '-'}</div><div class="text-gray-400">GĐKV</div></td><td class="p-4 text-blue-600 font-medium text-sm">${s.saleRep || '-'}</td><td class="p-4 text-gray-500 text-sm">${s.province || ''} <span class="text-xs text-gray-400">(${s.district || ''})</span></td><td class="p-4 text-center font-bold text-gray-600">${s.type || '-'}</td><td class="p-4 text-center text-gray-500 text-xs">${s.area || '-'}</td><td class="p-4 text-center sticky right-0 bg-white shadow-l border-l">${statusHtml}</td></tr>`; 
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 font-bold text-gray-800">${s.dvn}</td><td class="p-4 text-gray-700 font-medium">${s.name}</td><td class="p-4 text-xs"><div class="font-bold text-gray-700">${s.director || '-'}</div><div class="text-gray-400">GĐKV</div></td><td class="p-4 text-blue-600 font-medium text-sm">${s.saleRep || '-'}</td><td class="p-4 text-gray-500 text-sm">${s.province || ''} <span class="text-xs text-gray-400">(${s.district || ''})</span></td><td class="p-4 text-center sticky right-0 bg-white shadow-l border-l">${statusHtml}</td></tr>`; 
             }); 
         } 
         
