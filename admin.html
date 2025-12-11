@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YADEA Admin Pro - Secured Portal</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+  <style>
+    body { font-family: 'Roboto', sans-serif; }
+    .sidebar-link.active { background: linear-gradient(90deg, #ea580c 0%, #f97316 100%); color: white; box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3); }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f1f1f1; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .fade-in { animation: fadeIn 0.5s ease-in-out; } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    /* CHAT ADMIN CSS */
+    .chat-user-item:hover { background-color: #f3f4f6; cursor: pointer; }
+    .chat-user-item.active { background-color: #fff7ed; border-left: 4px solid #f97316; }
+    .chat-bubble-admin { max-width: 75%; padding: 10px; border-radius: 10px; font-size: 13px; margin-bottom: 5px; }
+    .bubble-me { background: #f97316; color: white; align-self: flex-end; }
+    .bubble-user { background: #e5e7eb; color: #374151; align-self: flex-start; }
+  </style>
+</head>
+<body class="bg-gray-50 h-screen flex overflow-hidden text-gray-700">
+
+  <div id="adminAuthOverlay" class="fixed inset-0 z-50 bg-[#111827] flex items-center justify-center">
+      <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center fade-in">
+          <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-12 mx-auto mb-6">
+          <h2 class="text-2xl font-bold text-gray-800 mb-1">ADMIN PORTAL</h2>
+          <p class="text-sm text-gray-500 mb-8">Khu vực quản trị cấp cao</p>
+          <div class="space-y-4 text-left">
+              <div><label class="block text-xs font-bold text-gray-600 mb-1">Email Admin</label><input id="admEmail" type="email" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-orange-500 outline-none transition" value="vuhuythanh271092@gmail.com"></div>
+              <div><label class="block text-xs font-bold text-gray-600 mb-1">Mật khẩu</label><input id="admPass" type="password" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-orange-500 outline-none transition"></div>
+              <button id="admLoginBtn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg shadow-lg transition transform active:scale-95">ĐĂNG NHẬP</button>
+              <p id="admError" class="text-center text-xs text-red-500 font-bold h-4"></p>
+          </div>
+          <div class="mt-6 text-xs text-gray-400">Hệ thống chỉ dành cho nhân sự được ủy quyền.</div>
+      </div>
+  </div>
+
+  <div id="appContainer" class="hidden flex-1 flex h-full w-full">
+      <aside class="w-64 bg-[#111827] text-gray-300 flex flex-col flex-shrink-0">
+        <div class="h-16 flex items-center gap-3 px-6 bg-[#0f172a]">
+            <img src="https://raw.githubusercontent.com/vuhuythanh/tichdiem/refs/heads/main/logo%20YADEA.png" class="h-6 w-auto">
+            <h1 class="font-bold text-white text-sm">ADMIN PORTAL</h1>
+        </div>
+        <div class="px-6 py-4 border-b border-gray-800">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-xs">AD</div><div class="overflow-hidden"><div class="text-xs font-bold text-white truncate" id="adminNameDisplay">Admin</div><div class="text-[10px] text-green-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Online</div></div></div>
+        </div>
+        <nav class="flex-1 px-3 py-6 space-y-1">
+          <button onclick="switchTab('dashboard')" id="tabDashboard" class="sidebar-link active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-chart-pie w-5"></i> Dashboard KPI</button>
+          <button onclick="switchTab('lessons')" id="tabLessons" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-layer-group w-5"></i> Kho bài học</button>
+          <button onclick="switchTab('users')" id="tabUsers" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-users w-5"></i> Quản lý User <span id="pendingCount" class="hidden ml-auto bg-red-500 text-white text-[10px] px-1.5 rounded-full">0</span></button>
+          <button onclick="switchTab('progress')" id="tabProgress" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-bars-progress w-5"></i> Tiến độ đào tạo</button>
+          <button onclick="switchTab('reports')" id="tabReports" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-trophy w-5"></i> Bảng xếp hạng</button>
+          <div class="pt-4 mt-4 border-t border-gray-700"><p class="px-3 text-[10px] uppercase font-bold text-gray-500 mb-2">Enterprise Data</p><button onclick="switchTab('shops')" id="tabShops" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-store w-5"></i> Dữ liệu Đại lý</button></div>
+          <div class="pt-4 mt-4 border-t border-gray-700"><button onclick="switchTab('chat')" id="tabChat" class="sidebar-link w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition"><i class="fa-solid fa-comments w-5"></i> Hỗ trợ / Chat <span id="chatUnreadCount" class="hidden bg-red-600 text-white text-[10px] px-1.5 rounded-full ml-auto">0</span></button></div>
+        </nav>
+        <div class="p-4 border-t border-gray-800"><button id="adminLogoutBtn" class="flex gap-2 text-sm text-gray-400 hover:text-white transition w-full items-center"><i class="fa-solid fa-arrow-right-from-bracket"></i> Đăng xuất</button></div>
+      </aside>
+
+      <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gray-50">
+        
+        <div id="viewDashboard" class="flex-1 flex flex-col h-full overflow-y-auto p-6 scroll-smooth">
+            <header class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-bold text-gray-800">Thống Kê Hiệu Suất</h2><p class="text-sm text-gray-500">Tổng hợp KPI theo Shop, Vùng và Nhân sự</p></div><div class="flex gap-3"><select id="dashFilterLesson" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none w-48"><option value="all">-- Tất cả bài học --</option></select><select id="dashFilterDirector" onchange="loadDashboard()" class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm shadow-sm outline-none w-40"><option value="all">-- Tất cả GĐKV --</option></select><button onclick="exportKPIDashboard()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-file-excel"></i> Xuất Báo Cáo</button><button onclick="loadDashboard(true)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-rotate"></i> Làm mới</button></div></header>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Tỷ lệ Hoàn Thành</p><h3 id="kpiRate" class="text-3xl font-bold text-gray-800">0%</h3></div><div class="z-10"><span class="text-xs font-medium text-green-500 bg-green-50 px-2 py-1 rounded-full">Toàn quốc</span></div><i class="fa-solid fa-chart-pie absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
+                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Điểm Trung Bình</p><h3 id="kpiAvgScore" class="text-3xl font-bold text-blue-600">0.0</h3></div><div class="z-10"><span class="text-xs text-gray-400">Thang điểm 100</span></div><i class="fa-solid fa-graduation-cap absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
+                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Shop Đạt Chuẩn</p><h3 id="kpiShopPass" class="text-3xl font-bold text-green-600">0</h3></div><div class="z-10"><span id="kpiShopTotal" class="text-xs text-gray-500">trên tổng số 0 shop</span></div><i class="fa-solid fa-store absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
+                <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition"><div class="z-10"><p class="text-xs font-bold text-gray-400 uppercase mb-1">Nhân Sự Tham Gia</p><h3 id="kpiUserActive" class="text-3xl font-bold text-purple-600">0</h3></div><div class="z-10"><span class="text-xs text-gray-400">Đã làm bài thi</span></div><i class="fa-solid fa-users absolute -bottom-4 -right-4 text-8xl text-gray-50 opacity-50 group-hover:opacity-100 transition-all"></i></div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-medal text-yellow-500"></i> Top 10 Cửa Hàng (Điểm TB)</h3><div id="chartTopShops" class="w-full h-80"></div></div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-user-graduate text-blue-500"></i> Top 10 Nhân Viên (Điểm Cao)</h3><div id="chartTopStaff" class="w-full h-80"></div></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8"><h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-red-500"></i> Bản Đồ Nhiệt: Tỷ Lệ Hoàn Thành Theo Tỉnh/Thành</h3><div id="chartRegionMap" class="w-full h-96"></div></div>
+        </div>
+
+        <div id="viewLessons" class="hidden flex-1 flex flex-col h-full bg-white">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6"><h2 class="text-xl font-bold">Quản lý bài học</h2><button onclick="resetForm()" class="bg-gray-900 text-white text-sm px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> Tạo mới</button></header>
+            <div class="flex-1 overflow-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-2 flex flex-col"><div id="lessonList" class="flex-1 overflow-y-auto space-y-2"></div></div>
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border p-6">
+                        <h3 id="formTitle" class="font-bold mb-4">Thông tin bài học</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-2"><label class="text-xs font-bold">Tiêu đề (*)</label><input id="inpTitle" class="w-full border rounded p-2 text-sm focus:border-orange-500 outline-none"></div>
+                            <div class="col-span-2 bg-blue-50 p-3 rounded border border-blue-100">
+                                <label class="text-xs font-bold text-blue-800 mb-2 block"><i class="fa-solid fa-user-lock"></i> Đối tượng xem:</label>
+                                <div class="flex gap-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleLearner" checked class="accent-blue-600"> <span class="text-sm">Nhân viên</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleSale" class="accent-blue-600"> <span class="text-sm font-bold text-orange-600">Sale Team</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="roleDirector" class="accent-blue-600"> <span class="text-sm font-bold text-purple-600">GĐKV</span></label></div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold">Danh mục</label>
+                                <select id="inpCategory" class="w-full border rounded p-2 text-sm">
+                                    <option value="video">Học qua Video</option>
+                                    <option value="product">Sản phẩm</option>
+                                    <option value="skill">Kỹ năng</option>
+                                    <option value="culture">Văn hoá</option>
+                                </select>
+                            </div>
+                            <div><label class="text-xs font-bold">Thời lượng (hiển thị)</label><input id="inpDuration" class="w-full border rounded p-2 text-sm" placeholder="VD: 15"></div>
+                            <div><label class="text-xs font-bold text-green-600">Thời gian yêu cầu (phút)</label><input id="inpMinTime" type="number" value="5" class="w-full border rounded p-2 text-sm focus:border-green-500 font-bold text-green-700" placeholder="Mặc định: 5"></div>
+                            <div class="col-span-2"><label class="text-xs font-bold">Link (Youtube/PDF) (*)</label><input id="inpContentUrl" class="w-full border rounded p-2 text-sm"></div>
+                            <div class="col-span-2"><label class="text-xs font-bold">Link Ảnh</label><input id="inpImage" class="w-full border rounded p-2 text-sm"></div>
+                            <div class="col-span-2"><label class="text-xs font-bold">Mô tả</label><textarea id="inpDesc" rows="3" class="w-full border rounded p-2 text-sm"></textarea></div>
+                        </div>
+                        <div class="mt-4 flex justify-between"><button id="btnDeleteLesson" class="hidden text-red-500 text-xs font-bold">Xóa</button><button id="btnSaveLesson" class="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-bold shadow hover:bg-orange-600">Lưu</button></div>
+                    </div>
+                    <div id="quizSection" class="hidden bg-white rounded-2xl shadow-sm border p-6">
+                        <h3 class="font-bold mb-4 flex justify-between items-center"><span>Câu hỏi trắc nghiệm</span><button id="btnCancelEditQ" class="hidden text-xs text-gray-500 hover:text-gray-800 underline" onclick="cancelEditQ()">Hủy sửa</button></h3>
+                        <div class="bg-gray-50 p-4 rounded border border-dashed mb-4 transition-colors" id="quizInputBox">
+                            <input id="qText" placeholder="Nội dung câu hỏi..." class="w-full border p-2 rounded mb-2 text-sm font-medium focus:border-orange-500 outline-none">
+                            <div class="grid grid-cols-2 gap-2 mb-2"><input id="qOp0" placeholder="Đáp án A" class="border p-2 text-sm rounded"><input id="qOp1" placeholder="Đáp án B" class="border p-2 text-sm rounded"><input id="qOp2" placeholder="Đáp án C" class="border p-2 text-sm rounded"><input id="qOp3" placeholder="Đáp án D" class="border p-2 text-sm rounded"></div>
+                            <div class="flex justify-between items-center"><div class="flex items-center gap-2"><span class="text-xs font-bold">Đúng:</span><select id="qCorrect" class="border p-1 text-sm rounded font-bold text-orange-600"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><button id="btnAddQuestion" class="bg-gray-800 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-black transition">Thêm câu hỏi</button></div>
+                        </div>
+                        <div id="questionList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewUsers" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
+                <h2 class="text-xl font-bold">Quản lý User</h2>
+                <div class="flex gap-2 items-center">
+                    <select id="filterUserLesson" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-blue-600 w-48 font-bold">
+                        <option value="all">-- Kiểm tra tiến độ bài --</option>
+                    </select>
+                    <input id="searchUser" onkeyup="renderUserTable()" placeholder="Tìm tên hoặc DVN..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600 w-40">
+                    <select id="filterUserStatus" onchange="renderUserTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600"><option value="all">-- Trạng thái --</option><option value="pending">Chờ duyệt</option><option value="active">Hoạt động</option><option value="banned">Đã khóa</option></select>
+                    <div class="w-[1px] h-6 bg-gray-300 mx-1"></div>
+                    <span id="userCountBadge" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">0 users</span>
+                    <button onclick="loadUsers(true)" class="text-blue-600 hover:text-blue-800 text-sm font-bold ml-2"><i class="fa-solid fa-cloud-arrow-down"></i> Tải tất cả</button>
+                </div>
+            </header>
+            <div class="p-6 max-w-7xl mx-auto w-full">
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                            <tr>
+                                <th class="p-4">Tên</th>
+                                <th class="p-4">DVN</th>
+                                <th class="p-4">Email</th>
+                                <th class="p-4" id="colDynamicTitle">Điểm & Sao</th>
+                                <th class="p-4">Vai trò</th>
+                                <th class="p-4">Trạng thái</th>
+                                <th class="p-4 text-right">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody" class="text-sm divide-y text-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewProgress" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
+                <h2 class="text-xl font-bold">Tiến độ đào tạo</h2>
+                <div class="flex gap-2">
+                    <select id="progressFilterLesson" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-bold text-blue-600 w-64 shadow-sm">
+                        <option value="all">-- Chọn bài học --</option>
+                    </select>
+                    <select id="progressFilterStatus" onchange="loadProgress()" class="bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none font-medium text-gray-600">
+                        <option value="all">Tất cả</option>
+                        <option value="done">Đã học</option>
+                        <option value="not">Chưa học</option>
+                    </select>
+                    <button onclick="exportProgressExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                    <button onclick="loadProgress()" class="text-gray-500 hover:text-blue-600 px-2" title="Làm mới"><i class="fa-solid fa-rotate"></i></button>
+                </div>
+            </header>
+            <div class="p-6 max-w-7xl mx-auto w-full flex flex-col h-full">
+                <div class="flex gap-4 mb-4 text-xs font-bold text-gray-500 uppercase tracking-wide">
+                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Tổng nhân sự: <span class="text-gray-900 text-sm ml-1" id="progTotal">0</span></div>
+                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Đã học: <span class="text-green-600 text-sm ml-1" id="progDone">0</span></div>
+                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Chưa học: <span class="text-red-500 text-sm ml-1" id="progNot">0</span></div>
+                    <div class="bg-white px-4 py-2 rounded-lg border shadow-sm">Tỷ lệ: <span class="text-blue-600 text-sm ml-1" id="progRate">0%</span></div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 flex flex-col">
+                    <div class="overflow-auto">
+                        <table class="w-full text-left" id="progressTable">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0">
+                                <tr>
+                                    <th class="p-4 w-12">#</th>
+                                    <th class="p-4">Họ tên nhân viên</th>
+                                    <th class="p-4">Mã DVN / User</th>
+                                    <th class="p-4">Đơn vị / Shop</th>
+                                    <th class="p-4 text-center">Trạng thái học</th>
+                                </tr>
+                            </thead>
+                            <tbody id="progressTableBody" class="text-sm divide-y text-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewReports" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6"><h2 class="text-xl font-bold">Bảng xếp hạng</h2><div class="flex gap-3"><select id="reportFilterLesson" onchange="loadReports()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white"><option value="all">-- Tất cả bài học --</option></select><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel (Full)</button><button onclick="loadReports(true)" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100">Tải tất cả</button></div></header>
+            <div class="p-6 max-w-7xl mx-auto w-full h-full flex flex-col"><div class="grid grid-cols-3 gap-4 mb-4"><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Tổng lượt thi</span><span id="statTotal" class="text-xl font-bold text-gray-800">0</span></div><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Đậu (100 điểm)</span><span id="statPass" class="text-xl font-bold text-green-600">0</span></div><div class="bg-white p-4 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-xs text-gray-500 uppercase">Rớt (<100 điểm)</span><span id="statFail" class="text-xl font-bold text-red-600">0</span></div></div><div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="overflow-auto"><table class="w-full text-left" id="reportTable"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0"><tr><th class="p-4 w-16">Hạng</th><th class="p-4">Nhân viên</th><th class="p-4">Bài học</th><th class="p-4 text-center">Điểm (100)</th><th class="p-4 text-center">Trạng thái</th><th class="p-4">Thời gian</th><th class="p-4">Ngày thi</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="reportTableBody" class="text-sm divide-y"></tbody></table></div></div></div>
+        </div>
+
+        <div id="viewShops" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6">
+                <h2 class="text-xl font-bold">Dữ liệu Đại lý (Shops)</h2>
+                <div class="flex gap-2">
+                    <input type="file" id="inpImportShop" class="hidden" accept=".xlsx, .xls" onchange="handleImportShop(this)">
+                    <button onclick="exportShopData()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                    <button onclick="document.getElementById('inpImportShop').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-cloud-arrow-up"></i> Import Excel</button>
+                    <button onclick="loadShops()" class="text-gray-500 hover:text-orange-500 px-2"><i class="fa-solid fa-rotate"></i></button>
+                </div>
+            </header>
+            <div class="p-6 max-w-[1800px] mx-auto w-full h-full flex flex-col">
+                <div class="flex gap-3 mb-4">
+                    <select id="filterShopLesson" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-64 font-bold text-blue-600 shadow-sm"><option value="all">-- Chọn bài học để check tiến độ --</option></select>
+                    <select id="filterShopStatus" onchange="loadShops()" class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-40 font-bold text-gray-600"><option value="all">-- Tất cả --</option><option value="done" class="text-green-600">Đã học</option><option value="not_yet" class="text-red-600">Chưa học</option></select>
+                    <input id="searchShop" onkeyup="loadShops()" placeholder="Tìm DVN, Tên shop..." class="bg-white border rounded px-3 py-1.5 text-sm outline-none w-80">
+                </div>
+                <div class="mb-2 text-xs text-gray-500 flex gap-4 uppercase font-bold tracking-wide">
+                     <span>Tổng: <b id="shopStatTotal" class="text-gray-800">0</b></span>
+                     <span>Đã học: <b id="shopStatDone" class="text-green-600">-</b></span>
+                     <span>Chưa học: <b id="shopStatNot" class="text-red-600">-</b></span>
+                     <span>Tỷ lệ: <b id="shopStatRate" class="text-blue-600">-</b></span>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="overflow-auto"><table class="w-full text-left min-w-[1200px]"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0 z-10"><tr><th class="p-4 w-24">Mã CH</th><th class="p-4 w-64">Tên Đại lý</th><th class="p-4">Khu vực / GĐKV</th><th class="p-4">Sale Rep</th><th class="p-4">Địa chỉ</th><th class="p-4 text-center w-32">Trạng thái</th></tr></thead><tbody id="shopTableBody" class="text-sm divide-y text-gray-700"></tbody></table></div></div>
+            </div>
+        </div>
+
+        <div id="viewChat" class="hidden flex-1 flex flex-col h-full bg-white">
+            <div class="flex h-full">
+                <div class="w-72 border-r border-gray-200 bg-gray-50 flex flex-col">
+                    <div class="p-4 border-b font-bold text-sm text-gray-600 uppercase">Danh sách hỗ trợ</div>
+                    <div id="chatUserList" class="flex-1 overflow-y-auto"></div>
+                </div>
+                <div class="flex-1 flex flex-col">
+                    <div class="h-16 border-b flex items-center px-6 bg-white justify-between">
+                        <div class="font-bold text-lg" id="chatHeaderName">Chọn học viên để chat</div>
+                        <div class="text-xs text-gray-400" id="chatHeaderDvn"></div>
+                    </div>
+                    <div id="adminChatMessages" class="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col gap-2"></div>
+                    <div class="p-4 bg-white border-t flex gap-2">
+                        <input id="adminChatInput" class="flex-1 border rounded-lg px-4 py-2 text-sm outline-none focus:border-orange-500" placeholder="Trả lời..." onkeypress="if(event.key==='Enter') sendAdminMsg()">
+                        <button onclick="sendAdminMsg()" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-orange-700"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+      </main>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, getDocs, getDoc, query, where, serverTimestamp, orderBy, setDoc, limit, onSnapshot, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    const app = initializeApp({ apiKey: "AIzaSyCJj_0-dVddgNBwPsm662guADskM5N9Q6I", authDomain: "e-learning-8d182.firebaseapp.com", projectId: "e-learning-8d182", storageBucket: "e-learning-8d182.firebasestorage.app", messagingSenderId: "1008025386680", appId: "1:1008025386680:web:5c91aa14e056e4578b7e4d", measurementId: "G-L6P2B51170" });
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    let currentReportData = [], allShopsCache = [], dashboardData = {}, userCache = [];
+    let currentChatUid = null;
+    let shopNameMap = {}; 
+    
+    // UTILS
+    const normalize = (str) => str ? String(str).trim().toUpperCase() : '';
+
+    window.resetPwd = async (email) => {
+        if (!email) return alert("User này không có email!");
+        if (confirm(`Gửi email yêu cầu đặt lại mật khẩu tới: ${email}?`)) {
+            try { await sendPasswordResetEmail(auth, email); alert("Đã gửi email thành công!"); } catch (e) { alert("Lỗi: " + e.message); }
+        }
+    }
+
+    // --- MAIN FUNCTION TO EXPORT SHOP DATA WITH PROGRESS ---
+    window.exportShopData = async function() {
+        const lessonId = document.getElementById('filterShopLesson').value;
+        const statusFilter = document.getElementById('filterShopStatus').value;
+        const search = document.getElementById('searchShop').value.toLowerCase();
+        
+        // Ensure data
+        if(allShopsCache.length === 0) await fetchShopData();
+        if(userCache.length === 0) await loadUsers(true);
+
+        let finishedDvns = new Set();
+        let lessonTitle = "ToanBo";
+
+        if(lessonId !== 'all') {
+            const lessonOpt = document.getElementById('filterShopLesson').options[document.getElementById('filterShopLesson').selectedIndex];
+            if(lessonOpt) lessonTitle = lessonOpt.text;
+            
+            // Collect DVNs of users who finished this lesson
+            userCache.forEach(u => {
+                if(u.completedActivities && u.completedActivities[`study_${lessonId}`] && u.dvnCode) {
+                    finishedDvns.add(normalize(u.dvnCode));
+                }
+            });
+        }
+
+        const exportList = allShopsCache.filter(s => {
+            const txt = ((s.dvn||'')+' '+(s.name||'')+' '+(s.saleRep||'')+' '+(s.director||'')+' '+(s.province||'')).toLowerCase();
+            if (search && !txt.includes(search)) return false;
+            
+            if (lessonId !== 'all' && statusFilter !== 'all') {
+                const isDone = finishedDvns.has(normalize(s.dvn));
+                if (statusFilter === 'done' && !isDone) return false;
+                if (statusFilter === 'not_yet' && isDone) return false;
+            }
+            return true;
+        });
+
+        if(exportList.length === 0) return alert("Không có dữ liệu nào để xuất!");
+        if(!confirm(`Xác nhận xuất ${exportList.length} đại lý ra file Excel?`)) return;
+
+        const dataRows = exportList.map(s => {
+            const isDone = finishedDvns.has(normalize(s.dvn));
+            let statusText = "--";
+            if(lessonId !== 'all') statusText = isDone ? "ĐÃ HỌC" : "CHƯA HỌC";
+            return { "Mã DVN": s.dvn, "Tên Đại Lý": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Quận/Huyện": s.district, "Loại Hình": s.type, "Trạng Thái": statusText };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(dataRows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "DanhSachDaiLy");
+        XLSX.writeFile(wb, `YADEA_DL_${lessonTitle}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    const checkAdminAuth = async (user) => {
+        if (!user) { showLogin(true); return; }
+        try {
+            const docSnap = await getDoc(doc(db, "users", user.uid));
+            if (docSnap.exists() && docSnap.data().role === 'admin') {
+                showLogin(false);
+                document.getElementById('adminNameDisplay').textContent = docSnap.data().name || 'Admin';
+                loadFilterOptions('dashFilterLesson'); loadDashboard(); listenToConversations();
+            } else { alert("Không có quyền Admin!"); await signOut(auth); showLogin(true); }
+        } catch (e) { alert("Lỗi xác thực: " + e.message); showLogin(true); }
+    };
+    const showLogin = (show) => {
+        if(show) { document.getElementById('adminAuthOverlay').classList.remove('hidden'); document.getElementById('appContainer').classList.add('hidden'); }
+        else { document.getElementById('adminAuthOverlay').classList.add('hidden'); document.getElementById('appContainer').classList.remove('hidden'); }
+    }
+    onAuthStateChanged(auth, (user) => { checkAdminAuth(user); });
+    document.getElementById('admLoginBtn').onclick = async () => {
+        const e = document.getElementById('admEmail').value, p = document.getElementById('admPass').value;
+        if(!e || !p) return;
+        if (e === 'vuhuythanh271092@gmail.com') {
+            try { await signInWithEmailAndPassword(auth, e, p); } catch (err) {
+                if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                    if (confirm("KÍCH HOẠT QUYỀN ADMIN MẶC ĐỊNH?")) {
+                        try {
+                            const c = await createUserWithEmailAndPassword(auth, e, p);
+                            await setDoc(doc(db, "users", c.user.uid), { uid: c.user.uid, email: e, name: "Super Admin", role: "admin", status: "active", createdAt: serverTimestamp() });
+                            alert("Đã tạo Admin thành công!");
+                        } catch (createErr) { alert("Lỗi: " + createErr.message); }
+                    }
+                } else { document.getElementById('admError').textContent = "Lỗi đăng nhập: " + err.code; }
+            }
+        } else {
+            try { await signInWithEmailAndPassword(auth, e, p); } catch (err) { document.getElementById('admError').textContent = "Email hoặc mật khẩu không đúng!"; }
+        }
+    };
+    document.getElementById('adminLogoutBtn').onclick = () => signOut(auth);
+
+    window.switchTab = function(t) {
+        ['viewLessons','viewUsers','viewReports','viewShops','viewDashboard','viewChat','viewProgress'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+        ['tabLessons','tabUsers','tabReports','tabShops','tabDashboard','tabChat','tabProgress'].forEach(x=>document.getElementById(x).classList.remove('active'));
+        document.getElementById('view'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('hidden');
+        document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active');
+        
+        if(t==='users') { if(userCache.length===0) loadUsers(); loadFilterOptions('filterUserLesson'); }
+        if(t==='progress') { if(userCache.length===0) loadUsers(true); loadFilterOptions('progressFilterLesson'); }
+        if(t==='reports') { loadFilterOptions('reportFilterLesson'); loadReports(); }
+        if(t==='shops') { 
+            loadFilterOptions('filterShopLesson'); 
+            if(allShopsCache.length===0) fetchShopData().then(loadShops); else loadShops();
+        }
+        if(t==='dashboard') { loadFilterOptions('dashFilterLesson'); loadDashboard(); }
+    }
+    async function loadFilterOptions(elementId) { const select = document.getElementById(elementId); if (select.options.length > 1) return; const snap = await getDocs(collection(db, "lessons")); snap.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.data().title; select.appendChild(opt); }); }
+
+    // --- CHAT LOGIC FOR ADMIN ---
+    function listenToConversations() {
+        const q = query(collection(db, "conversations"), orderBy("updatedAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const list = document.getElementById('chatUserList');
+            let unreadCount = 0;
+            list.innerHTML = "";
+            snapshot.forEach(docSnap => {
+                const d = docSnap.data();
+                if(d.isReadByAdmin === false) unreadCount++;
+                const isActive = currentChatUid === docSnap.id ? 'active' : '';
+                const style = d.isReadByAdmin === false ? 'font-weight:bold; color:#ea580c;' : 'text-gray-600';
+                list.innerHTML += `<div onclick="openChat('${docSnap.id}', '${d.studentName}', '${d.dvn}')" class="chat-user-item p-4 border-b ${isActive}">
+                    <div class="text-sm ${style}">${d.studentName}</div>
+                    <div class="text-xs text-gray-400 truncate">${d.lastMessage}</div>
+                </div>`;
+            });
+            const badge = document.getElementById('chatUnreadCount');
+            badge.textContent = unreadCount;
+            badge.classList.toggle('hidden', unreadCount === 0);
+        });
+    }
+
+    window.openChat = (uid, name, dvn) => {
+        currentChatUid = uid;
+        document.getElementById('chatHeaderName').textContent = name;
+        document.getElementById('chatHeaderDvn').textContent = dvn;
+        updateDoc(doc(db, "conversations", uid), { isReadByAdmin: true }); // Mark read
+        
+        onSnapshot(doc(db, "conversations", uid), (docSnap) => {
+            if(docSnap.exists()) {
+                const msgs = docSnap.data().messages || [];
+                const div = document.getElementById('adminChatMessages');
+                div.innerHTML = '';
+                msgs.forEach(m => {
+                    const isMe = m.sender === 'admin';
+                    div.innerHTML += `<div class="chat-bubble-admin ${isMe ? 'bubble-me' : 'bubble-user'}">${m.text}</div>`;
+                });
+                div.scrollTop = div.scrollHeight;
+            }
+        });
+    }
+
+    window.sendAdminMsg = async () => {
+        if(!currentChatUid) return;
+        const input = document.getElementById('adminChatInput');
+        const txt = input.value.trim();
+        if(!txt) return;
+        input.value = '';
+        await updateDoc(doc(db, "conversations", currentChatUid), {
+            messages: arrayUnion({ sender: 'admin', text: txt, time: Date.now() }),
+            lastMessage: "Admin: " + txt,
+            updatedAt: serverTimestamp(),
+            isReadByStudent: false
+        });
+    }
+
+    // --- HELPER: GET SHOPS FOR MAPPING ---
+    async function fetchShopData() {
+        if(allShopsCache.length === 0) { 
+            const sSnap = await getDocs(collection(db, "shops")); 
+            sSnap.forEach(d => {
+                const s = d.data();
+                allShopsCache.push(s);
+                if(s.dvn) shopNameMap[normalize(s.dvn)] = s.name;
+            });
+        }
+    }
+
+    window.loadUsers = async function(loadAll = false) { 
+        try {
+            const tb = document.getElementById('userTableBody'); tb.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+            await fetchShopData();
+            if(userCache.length === 0 || loadAll) {
+                let q = collection(db, "users"); if(!loadAll) q = query(collection(db, "users"), limit(100)); 
+                const snap = await getDocs(q); userCache = []; snap.forEach(d=>userCache.push({id:d.id,...d.data()}));
+                userCache.sort((a,b)=>{ const order = { 'pending': 1, 'active': 2, 'banned': 3 }; return (order[a.status||'active'] || 4) - (order[b.status||'active'] || 4); });
+            }
+            renderUserTable(); 
+        } catch(e) { console.error(e); alert("Lỗi tải User: " + e.message); }
+    }
+    
+    // --- RENDER USER TABLE ---
+    window.renderUserTable = function() {
+        const tb = document.getElementById('userTableBody'); 
+        const filterStatus = document.getElementById('filterUserStatus').value; 
+        const lessonFilterId = document.getElementById('filterUserLesson').value;
+        const search = document.getElementById('searchUser').value.toLowerCase();
+        
+        const colTitle = document.getElementById('colDynamicTitle');
+        if (lessonFilterId !== 'all') {
+            colTitle.innerHTML = '<span class="text-blue-600"><i class="fa-solid fa-eye"></i> Tiến độ bài học</span>';
+        } else {
+            colTitle.innerHTML = 'Điểm & Sao';
+        }
+
+        const pendingCount = userCache.filter(x=>x.status==='pending').length; 
+        document.getElementById('pendingCount').textContent = pendingCount; 
+        document.getElementById('pendingCount').classList.toggle('hidden', pendingCount===0);
+        
+        let displayList = userCache; 
+        if(filterStatus !== 'all') displayList = displayList.filter(u => u.status === filterStatus);
+        if(search) displayList = displayList.filter(u => (u.name&&u.name.toLowerCase().includes(search)) || (u.dvnCode&&u.dvnCode.toLowerCase().includes(search)));
+        
+        document.getElementById('userCountBadge').textContent = `Hiển thị ${displayList.length} user`; 
+        tb.innerHTML = '';
+        
+        if(displayList.length === 0) { tb.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-400">Không tìm thấy user nào.</td></tr>'; return; }
+        
+        displayList.forEach(x => { 
+            let sttBadge = '', actionBtns = ''; 
+            const pts = x.points || 0; const stars = x.stars || 0;
+            let nextTarget = 500; if(pts >= 2000) nextTarget = null; else if(pts >= 1600) nextTarget = 2000; else if(pts >= 1200) nextTarget = 1600; else if(pts >= 800) nextTarget = 1200; else if(pts >= 500) nextTarget = 800;
+            let dynamicColumnHtml = '';
+
+            if (lessonFilterId !== 'all') {
+                const hasStudied = x.completedActivities && x.completedActivities[`study_${lessonFilterId}`];
+                if (hasStudied) dynamicColumnHtml = `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200 shadow-sm"><i class="fa-solid fa-check"></i> ĐÃ HỌC</span>`;
+                else dynamicColumnHtml = `<span class="bg-gray-100 text-gray-400 px-3 py-1 rounded-full text-xs font-bold border border-gray-200">CHƯA HỌC</span>`;
+            } else {
+                let starHtml = ''; for(let i=0; i<stars; i++) starHtml += '<i class="fa-solid fa-star text-yellow-400 text-[10px]"></i>'; if(stars === 0) starHtml = '<span class="text-gray-300 text-[10px]"><i class="fa-regular fa-star"></i></span>';
+                let progressHtml = nextTarget ? `<div class="text-[10px] text-gray-400 mt-1">Cần <b>${nextTarget - pts}</b>đ lên sao</div>` : `<div class="text-[10px] text-green-600 font-bold mt-1">MAX LEVEL</div>`;
+                dynamicColumnHtml = `<div class="flex items-center gap-1">${starHtml}</div><div class="text-xs font-bold text-gray-700">${pts} pts</div>${progressHtml}`;
+            }
+
+            if(x.status === 'pending') { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-700">Chờ duyệt</span>'; actionBtns = `<button onclick="updateStatus('${x.id}','active')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 shadow">Duyệt</button>`; } else if (x.status === 'active') { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">Hoạt động</span>'; actionBtns = `<button onclick="resetPwd('${x.email}')" class="text-yellow-600 hover:text-yellow-800 text-xs font-bold mr-2 border border-yellow-200 px-1.5 py-0.5 rounded bg-yellow-50" title="Gửi mail đổi MK"><i class="fa-solid fa-key"></i> Pass</button><button onclick="changeRole('${x.id}','${x.role||'learner'}')" class="text-purple-600 hover:text-purple-800 text-xs font-bold mr-2">Role</button><button onclick="updateStatus('${x.id}','banned')" class="text-red-500 hover:text-red-700 text-xs font-bold">Khóa</button>`; } else { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">Đã khóa</span>'; actionBtns = `<button onclick="updateStatus('${x.id}','active')" class="bg-gray-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">Mở</button>`; } 
+            actionBtns += `<button onclick="deleteUser('${x.id}')" class="text-gray-400 hover:text-red-600 text-xs font-bold ml-2" title="Xóa"><i class="fa-solid fa-trash"></i></button>`;
+            let roleBadge = '<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px]">NV</span>'; if(x.role === 'sale') roleBadge = '<span class="bg-orange-100 text-orange-600 px-2 py-0.5 rounded text-[10px] font-bold">SALE</span>'; if(x.role === 'director') roleBadge = '<span class="bg-purple-100 text-purple-600 px-2 py-0.5 rounded text-[10px] font-bold">GĐ</span>'; if(x.role === 'admin') roleBadge = '<span class="bg-black text-white px-2 py-0.5 rounded text-[10px] font-bold">ADMIN</span>';
+            tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 font-bold text-gray-900">${x.name||'---'}</td><td class="p-4 text-gray-600">${x.dvnCode||'---'}</td><td class="p-4 text-gray-500">${x.email}</td><td class="p-4">${dynamicColumnHtml}</td><td class="p-4">${roleBadge}</td><td class="p-4">${sttBadge}</td><td class="p-4 text-right">${actionBtns}</td></tr>`; 
+        });
+    }
+
+    // --- NEW FEATURE: TRAINING PROGRESS (WITH SHOP NAME MAPPING) ---
+    window.loadProgress = async function() {
+        const tb = document.getElementById('progressTableBody');
+        const lessonId = document.getElementById('progressFilterLesson').value;
+        const statusFilter = document.getElementById('progressFilterStatus').value;
+        
+        await fetchShopData();
+
+        if (lessonId === 'all') {
+            tb.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400 italic">Vui lòng chọn bài học để kiểm tra tiến độ</td></tr>';
+            document.getElementById('progTotal').textContent = 0; document.getElementById('progDone').textContent = 0; document.getElementById('progNot').textContent = 0; document.getElementById('progRate').textContent = '0%';
+            return;
+        }
+
+        let total = 0, done = 0;
+        let rows = '';
+        const usersToCheck = userCache.filter(u => u.status === 'active' && u.role !== 'admin');
+
+        usersToCheck.forEach((u, idx) => {
+            const hasStudied = u.completedActivities && u.completedActivities[`study_${lessonId}`];
+            if (statusFilter === 'done' && !hasStudied) return;
+            if (statusFilter === 'not' && hasStudied) return;
+
+            total++;
+            if (hasStudied) done++;
+
+            const statusBadge = hasStudied ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold border border-green-200">ĐÃ HỌC</span>` : `<span class="bg-gray-100 text-gray-400 px-3 py-1 rounded text-xs font-bold border border-gray-200">CHƯA HỌC</span>`;
+            const shopName = shopNameMap[normalize(u.dvnCode)] || '<span class="text-gray-400 italic">Chưa xác định</span>';
+
+            rows += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 text-gray-500">${idx + 1}</td><td class="p-4 font-bold text-gray-800">${u.name}</td><td class="p-4 text-gray-600 font-mono text-xs">${u.dvnCode || '---'}</td><td class="p-4 text-blue-700 font-bold text-xs">${shopName}</td><td class="p-4 text-center">${statusBadge}</td></tr>`;
+        });
+
+        tb.innerHTML = rows || '<tr><td colspan="5" class="p-8 text-center text-gray-400">Không tìm thấy kết quả</td></tr>';
+        
+        document.getElementById('progTotal').textContent = total;
+        document.getElementById('progDone').textContent = done;
+        document.getElementById('progNot').textContent = total - done;
+        document.getElementById('progRate').textContent = total > 0 ? Math.round((done/total)*100) + '%' : '0%';
+    }
+
+    window.exportProgressExcel = function() {
+        const lessonId = document.getElementById('progressFilterLesson').value;
+        if (lessonId === 'all') return alert("Vui lòng chọn bài học trước khi xuất Excel!");
+        const lessonTitle = document.getElementById('progressFilterLesson').options[document.getElementById('progressFilterLesson').selectedIndex].text;
+        
+        const data = userCache.filter(u => u.status === 'active' && u.role !== 'admin').map(u => {
+            const hasStudied = u.completedActivities && u.completedActivities[`study_${lessonId}`];
+            const shopName = shopNameMap[normalize(u.dvnCode)] || 'Chưa xác định';
+            return { "Họ và Tên": u.name, "Mã DVN": u.dvnCode, "Tên Đại Lý": shopName, "Email": u.email, "Bài học": lessonTitle, "Trạng thái": hasStudied ? "ĐÃ HỌC" : "CHƯA HỌC" };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "TienDoDaoTao");
+        XLSX.writeFile(wb, `TienDo_${lessonTitle}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // --- MAIN LOGIC FOR SHOP DATA TAB (UPDATED) ---
+    window.loadShops = async function() { 
+        const tb = document.getElementById('shopTableBody'); 
+        const lessonId = document.getElementById('filterShopLesson').value; 
+        const statusFilter = document.getElementById('filterShopStatus').value; 
+        const search = document.getElementById('searchShop').value.toLowerCase(); 
+        
+        tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>'; 
+        
+        // 1. Ensure Shops and Users are loaded
+        if(allShopsCache.length === 0) await fetchShopData();
+        if(userCache.length === 0) await loadUsers(true);
+
+        // 2. Identify DVNs that have finished the lesson
+        let finishedDvns = new Set();
+        if(lessonId !== 'all') {
+            userCache.forEach(u => {
+                if(u.completedActivities && u.completedActivities[`study_${lessonId}`] && u.dvnCode) {
+                    finishedDvns.add(normalize(u.dvnCode));
+                }
+            });
+        }
+        
+        // 3. Filter Shops based on criteria
+        let displayList = allShopsCache.filter(s => { 
+            const txt = ((s.dvn||'')+' '+(s.name||'')+' '+(s.saleRep||'')+' '+(s.director||'')+' '+(s.province||'')).toLowerCase(); 
+            if (search && !txt.includes(search)) return false;
+            
+            if (lessonId !== 'all' && statusFilter !== 'all') {
+                const isDone = finishedDvns.has(normalize(s.dvn));
+                if (statusFilter === 'done' && !isDone) return false;
+                if (statusFilter === 'not_yet' && isDone) return false;
+            }
+            return true;
+        }); 
+        
+        // 4. Render
+        let doneCnt = 0; 
+        tb.innerHTML = ''; 
+        if(displayList.length === 0) { 
+            tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-400">Không tìm thấy dữ liệu phù hợp.</td></tr>'; 
+        } else { 
+            displayList.slice(0, 500).forEach(s => { 
+                const isDone = lessonId !== 'all' && finishedDvns.has(normalize(s.dvn)); 
+                if(isDone) doneCnt++; 
+                const statusHtml = lessonId === 'all' ? '<span class="text-gray-400 text-xs">--</span>' : (isDone ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded font-bold text-xs">ĐÃ HỌC</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded font-bold text-xs">CHƯA HỌC</span>'); 
+                tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 font-bold text-gray-800">${s.dvn}</td><td class="p-4 text-gray-700 font-medium">${s.name}</td><td class="p-4 text-xs"><div class="font-bold text-gray-700">${s.director || '-'}</div><div class="text-gray-400">GĐKV</div></td><td class="p-4 text-blue-600 font-medium text-sm">${s.saleRep || '-'}</td><td class="p-4 text-gray-500 text-sm">${s.province || ''} <span class="text-xs text-gray-400">(${s.district || ''})</span></td><td class="p-4 text-center font-bold text-gray-600">${s.type || '-'}</td><td class="p-4 text-center text-gray-500 text-xs">${s.area || '-'}</td><td class="p-4 text-center sticky right-0 bg-white shadow-l border-l">${statusHtml}</td></tr>`; 
+            }); 
+        } 
+        
+        // 5. Update Stats
+        if(statusFilter !== 'all' && lessonId !== 'all') {
+             document.getElementById('shopStatTotal').textContent = displayList.length;
+             document.getElementById('shopStatDone').textContent = statusFilter === 'done' ? displayList.length : 0;
+             document.getElementById('shopStatNot').textContent = statusFilter === 'not_yet' ? displayList.length : 0;
+             document.getElementById('shopStatRate').textContent = '---';
+        } else {
+            document.getElementById('shopStatTotal').textContent = displayList.length; 
+            if(lessonId !== 'all') { 
+                document.getElementById('shopStatDone').textContent = doneCnt; 
+                document.getElementById('shopStatNot').textContent = displayList.length - doneCnt; 
+                document.getElementById('shopStatRate').textContent = displayList.length > 0 ? Math.round((doneCnt/displayList.length)*100) + '%' : '0%'; 
+            } else { 
+                document.getElementById('shopStatDone').textContent = '-'; 
+                document.getElementById('shopStatNot').textContent = '-'; 
+                document.getElementById('shopStatRate').textContent = '-'; 
+            } 
+        }
+    }
+
+    window.updateStatus = async(id, status) => { if(confirm("Thay đổi trạng thái?")) { await updateDoc(doc(db,"users",id),{status: status}); loadUsers(true); } }
+    window.changeRole = async(id, currentRole) => { const newRole = prompt("Nhập vai trò (learner/sale/director/admin):", currentRole); if(newRole && ['learner','sale','director','admin'].includes(newRole)) { await updateDoc(doc(db,"users",id),{role: newRole}); loadUsers(true); } }
+    window.deleteUser = async(id) => { if(confirm("CẢNH BÁO: XÓA VĨNH VIỄN?")) { try { await deleteDoc(doc(db, "users", id)); userCache = userCache.filter(u => u.id !== id); renderUserTable(); } catch(e) { alert("Lỗi: " + e.message); } } }
+
+    // --- OTHER FUNCTIONS ---
+    window.loadDashboard = async function(refresh = false) { const lessonId = document.getElementById('dashFilterLesson').value; const directorFilter = document.getElementById('dashFilterDirector').value; if(allShopsCache.length === 0 || refresh) { allShopsCache = []; const sSnap = await getDocs(collection(db, "shops")); sSnap.forEach(d => allShopsCache.push(d.data())); const directors = [...new Set(allShopsCache.map(s => s.director).filter(Boolean))]; const dSelect = document.getElementById('dashFilterDirector'); dSelect.innerHTML = '<option value="all">-- Tất cả GĐKV --</option>'; directors.forEach(d => { const opt=document.createElement('option'); opt.value=d; opt.textContent=d; dSelect.appendChild(opt); }); } let rQ = collection(db, "exam_results"); if(lessonId !== 'all') rQ = query(collection(db, "exam_results"), where("lessonId", "==", lessonId)); const rSnap = await getDocs(rQ); const results = []; rSnap.forEach(d => results.push(d.data())); let filteredShops = allShopsCache; if(directorFilter !== 'all') filteredShops = filteredShops.filter(s => s.director === directorFilter); const shopStats = {}, staffStats = {}, provinceStats = {}; filteredShops.forEach(s => { shopStats[s.dvn] = { name: s.name, passed: 0, totalScore: 0, attempts: 0, province: s.province }; if(!provinceStats[s.province]) provinceStats[s.province] = { passed: 0, total: 0 }; provinceStats[s.province].total++; }); let totalScoreSum = 0, totalAttempts = 0; results.forEach(r => { const dvn = r.dvn ? r.dvn.trim() : ''; if(shopStats[dvn]) { const score = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; if(!staffStats[r.uid]) staffStats[r.uid] = { name: r.name, scoreSum: 0, tests: 0, maxScore: 0, shopName: shopStats[dvn].name }; staffStats[r.uid].scoreSum += score; staffStats[r.uid].tests++; if(score > staffStats[r.uid].maxScore) staffStats[r.uid].maxScore = score; shopStats[dvn].totalScore += score; shopStats[dvn].attempts++; if(score === 100) shopStats[dvn].passed = 1; totalScoreSum += score; totalAttempts++; } }); const shopPassCount = Object.values(shopStats).filter(s => s.passed > 0).length; document.getElementById('kpiRate').textContent = (filteredShops.length > 0 ? Math.round((shopPassCount / filteredShops.length) * 100) : 0) + '%'; document.getElementById('kpiAvgScore').textContent = totalAttempts > 0 ? (totalScoreSum / totalAttempts).toFixed(1) : 0; document.getElementById('kpiShopPass').textContent = shopPassCount; document.getElementById('kpiShopTotal').textContent = `trên tổng số ${filteredShops.length} shop`; document.getElementById('kpiUserActive').textContent = Object.keys(staffStats).length; const topShops = Object.entries(shopStats).map(([dvn, s]) => ({ name: s.name, avg: s.attempts > 0 ? Math.round(s.totalScore/s.attempts) : 0 })).sort((a,b) => b.avg - a.avg).slice(0, 10); const topStaff = Object.values(staffStats).map(s => ({ name: s.name, score: s.maxScore, shop: s.shopName })).sort((a,b) => b.score - a.score).slice(0, 10); const provData = Object.entries(provinceStats).map(([prov, dat]) => { const shopsInProv = filteredShops.filter(s => s.province === prov); const passedInProv = shopsInProv.filter(s => shopStats[s.dvn] && shopStats[s.dvn].passed > 0).length; return { name: prov || 'Chưa XĐ', y: shopsInProv.length > 0 ? Math.round((passedInProv/shopsInProv.length)*100) : 0 }; }).sort((a,b) => b.y - a.y); renderChart('chartTopShops', 'column', 'Top 10 Cửa Hàng (Điểm TB)', topShops.map(s=>s.name), topShops.map(s=>s.avg), '#f97316'); renderChart('chartTopStaff', 'bar', 'Top 10 Nhân Viên (Điểm Cao)', topStaff.map(s=>`${s.name} (${s.shop})`), topStaff.map(s=>s.score), '#3b82f6'); renderChart('chartRegionMap', 'column', 'Tỷ Lệ Hoàn Thành (%)', provData.map(s=>s.name), provData.map(s=>s.y), '#10b981'); dashboardData = { filteredShops, shopStats }; }
+    function renderChart(id, type, title, cats, data, color) { Highcharts.chart(id, { chart: { type: type }, title: { text: null }, xAxis: { categories: cats }, yAxis: { title: { text: null } }, series: [{ name: title, data: data, color: color, showInLegend: false }], credits: { enabled: false } }); }
+    window.exportKPIDashboard = function() { if(!dashboardData.filteredShops) return alert("Vui lòng tải dữ liệu trước!"); const rows = dashboardData.filteredShops.map(s => { const stat = dashboardData.shopStats[s.dvn] || { passed: 0, attempts: 0 }; return { "Mã DVN": s.dvn, "Tên Cửa Hàng": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Số Lượt Thi": stat.attempts, "Trạng Thái": stat.passed > 0 ? "ĐẠT" : "CHƯA ĐẠT" }; }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KPI_Report"); XLSX.writeFile(wb, `YADEA_KPI_${new Date().toISOString().slice(0,10)}.xlsx`); }
+    let curL = null, loadedQuestions = [], editingQId = null; const els = {t:'inpTitle',c:'inpCategory',d:'inpDuration',u:'inpContentUrl',i:'inpImage', de:'inpDesc', minT: 'inpMinTime'};
+    async function ldL() { const l = document.getElementById('lessonList'); l.innerHTML='...'; const s = await getDocs(query(collection(db,"lessons"),orderBy("createdAt","desc"))); l.innerHTML=''; s.forEach(d=>{const da=d.data(); let rolesIcon = ''; if(da.targetRoles && da.targetRoles.includes('sale')) rolesIcon += '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded ml-1">SALE</span>'; if(da.targetRoles && da.targetRoles.includes('director')) rolesIcon += '<span class="text-[10px] bg-purple-100 text-purple-600 px-1 rounded ml-1">GĐ</span>'; l.innerHTML+=`<div onclick="sel('${d.id}')" class="p-2 border rounded cursor-pointer hover:bg-gray-50 flex gap-2 items-center"><img src="${da.bannerUrl||da.image}" class="w-8 h-8 rounded bg-gray-200"><div class="flex-1 min-w-0"><div class="truncate text-xs font-bold">${da.title}</div><div class="mt-1">${rolesIcon}</div></div></div>`;}); }
+    window.sel = async(id) => { const snap = await getDocs(query(collection(db, "lessons"), where("__name__", "==", id))); snap.forEach(doc=>{ const da=doc.data(); curL=id; document.getElementById('formTitle').textContent="Sửa: "+da.title; document.getElementById('btnSaveLesson').textContent="Cập nhật"; document.getElementById('btnDeleteLesson').classList.remove('hidden'); document.getElementById('quizSection').classList.remove('hidden'); document.getElementById(els.t).value=da.title; document.getElementById(els.c).value=da.category; document.getElementById(els.d).value=da.duration; document.getElementById(els.u).value=da.contentUrl; document.getElementById(els.i).value=da.bannerUrl||''; document.getElementById(els.de).value=da.description||''; document.getElementById(els.minT).value = Math.round((da.minStudyTime||300)/60); const roles = da.targetRoles || ['learner']; document.getElementById('roleLearner').checked = roles.includes('learner'); document.getElementById('roleSale').checked = roles.includes('sale'); document.getElementById('roleDirector').checked = roles.includes('director'); cancelEditQ(); ldQ(id); }); }
+    window.resetForm = () => { curL=null; cancelEditQ(); document.getElementById('formTitle').textContent="Thêm mới"; document.getElementById('btnSaveLesson').textContent="Lưu"; document.getElementById('btnDeleteLesson').classList.add('hidden'); document.getElementById('quizSection').classList.add('hidden'); for(let k in els) document.getElementById(els[k]).value=''; document.getElementById('inpMinTime').value = 5; document.getElementById('roleLearner').checked = true; document.getElementById('roleSale').checked = false; document.getElementById('roleDirector').checked = false; }
+    document.getElementById('btnSaveLesson').onclick = async() => { const targetRoles = []; if(document.getElementById('roleLearner').checked) targetRoles.push('learner'); if(document.getElementById('roleSale').checked) targetRoles.push('sale'); if(document.getElementById('roleDirector').checked) targetRoles.push('director'); if(targetRoles.length === 0) targetRoles.push('learner'); const minMins = parseInt(document.getElementById(els.minT).value) || 5; const da = {title:document.getElementById(els.t).value, category:document.getElementById(els.c).value, duration:document.getElementById(els.d).value, contentUrl:document.getElementById(els.u).value, bannerUrl:document.getElementById(els.i).value, description:document.getElementById(els.de).value, minStudyTime: minMins*60, targetRoles: targetRoles, createdAt:serverTimestamp()}; if(curL) await updateDoc(doc(db,"lessons",curL),da); else { const r=await addDoc(collection(db,"lessons"),da); curL=r.id; } alert("Đã lưu"); ldL(); }
+    document.getElementById('btnDeleteLesson').onclick = async() => { if(confirm("Xóa?")) { await deleteDoc(doc(db,"lessons",curL)); resetForm(); ldL(); } }
+    async function ldQ(id) { const ql = document.getElementById('questionList'); ql.innerHTML=''; const s = await getDocs(query(collection(db,"questions"),where("lessonId","==",id))); loadedQuestions=[]; s.forEach(d=>{const da=d.data(); da.id=d.id; loadedQuestions.push(da); ql.innerHTML+=`<div class="text-xs border p-3 rounded flex justify-between bg-gray-50"><div class="flex-1 mr-2"><b class="text-gray-800 block mb-1">${da.text}</b><span class="text-green-600 bg-green-50 px-1.5 border border-green-100 rounded">Đúng: ${da.options[da.correctIndex]}</span></div><div class="flex gap-2"><button onclick="editQ('${d.id}')" class="text-blue-500 font-bold border border-blue-200 bg-white px-2 rounded">Sửa</button><button onclick="dQ('${d.id}')" class="text-red-500 font-bold border border-red-200 bg-white px-2 rounded">Xóa</button></div></div>`;}); }
+    window.editQ = (id) => { const q = loadedQuestions.find(x => x.id === id); if(!q) return; editingQId = id; document.getElementById('qText').value = q.text; document.getElementById('qOp0').value = q.options[0]; document.getElementById('qOp1').value = q.options[1]; document.getElementById('qOp2').value = q.options[2]; document.getElementById('qOp3').value = q.options[3]; document.getElementById('qCorrect').value = q.correctIndex; const btn = document.getElementById('btnAddQuestion'); btn.textContent = "Cập nhật"; btn.classList.add('bg-blue-600'); document.getElementById('btnCancelEditQ').classList.remove('hidden'); document.getElementById('quizInputBox').classList.add('border-blue-300', 'bg-blue-50'); document.getElementById('qText').focus(); }
+    window.cancelEditQ = () => { editingQId = null; document.getElementById('qText').value = ''; document.getElementById('qOp0').value = ''; document.getElementById('qOp1').value = ''; document.getElementById('qOp2').value = ''; document.getElementById('qOp3').value = ''; const btn = document.getElementById('btnAddQuestion'); btn.textContent = "Thêm câu hỏi"; btn.classList.remove('bg-blue-600'); document.getElementById('btnCancelEditQ').classList.add('hidden'); document.getElementById('quizInputBox').classList.remove('border-blue-300', 'bg-blue-50'); }
+    document.getElementById('btnAddQuestion').onclick = async() => { const t = document.getElementById('qText').value; if(!t) return alert("Nhập câu hỏi!"); const qData = {lessonId: curL, text: t, options: [document.getElementById('qOp0').value, document.getElementById('qOp1').value, document.getElementById('qOp2').value, document.getElementById('qOp3').value], correctIndex: parseInt(document.getElementById('qCorrect').value), createdAt: serverTimestamp()}; if(editingQId) { await updateDoc(doc(db, "questions", editingQId), qData); cancelEditQ(); } else { await addDoc(collection(db,"questions"), qData); document.getElementById('qText').value=''; } ldQ(curL); }
+    window.dQ = async(id) => { if(confirm("Xóa câu hỏi?")) { await deleteDoc(doc(db,"questions",id)); ldQ(curL); } }
+    const findVal = (row, ...keys) => { const rowKeys = Object.keys(row); for (let key of keys) { const match = rowKeys.find(k => k.toLowerCase().trim().includes(key.toLowerCase().trim())); if (match) return row[match]; } return ''; };
+    window.handleImportShop = async function(input) { if(!input.files || input.files.length === 0) return; const file = input.files[0]; const reader = new FileReader(); reader.onload = async (e) => { try { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const firstSheet = workbook.Sheets[workbook.SheetNames[0]]; const rawData = XLSX.utils.sheet_to_json(firstSheet, {header: 1}); let headerIndex = -1; for(let i = 0; i < Math.min(20, rawData.length); i++) { const rowStr = JSON.stringify(rawData[i]).toLowerCase(); if(rowStr.includes("mã cửa hàng") || rowStr.includes("dvn")) { headerIndex = i; break; } } if(headerIndex === -1) return alert("Lỗi: Không tìm thấy cột 'Mã cửa hàng'!"); const jsonData = XLSX.utils.sheet_to_json(firstSheet, {range: headerIndex}); if(!confirm(`Tìm thấy tiêu đề tại dòng ${headerIndex + 1}. Nhập liệu ngay?`)) return; let count = 0; for(let row of jsonData) { const dvn = findVal(row, 'Mã cửa hàng', 'DVN', 'Code'); if(dvn) { await setDoc(doc(db, "shops", String(dvn).trim()), { dvn: String(dvn).trim(), name: findVal(row, 'Tên đại lý', 'Name'), director: findVal(row, 'Giám đốc', 'GĐKV'), saleRep: findVal(row, 'Sale', 'Sales'), province: findVal(row, 'Tỉnh', 'City'), district: findVal(row, 'Huyện', 'District'), type: findVal(row, 'Loại hình', 'Type'), area: findVal(row, 'Diện tích', 'Area'), updatedAt: serverTimestamp() }); count++; } } alert(`Thành công: Đã nhập ${count} shop.`); allShopsCache = []; loadShops(); } catch(e) { alert("Lỗi đọc file: " + e.message); } }; reader.readAsArrayBuffer(file); input.value = ''; }
+    
+    window.loadReports = async function(loadAll = false) { const tb = document.getElementById('reportTableBody'); const filterId = document.getElementById('reportFilterLesson').value; tb.innerHTML='<tr><td colspan="8" class="p-4 text-center">Đang tải dữ liệu...</td></tr>'; let q = collection(db, "exam_results"); if(!loadAll && filterId === 'all') q = query(collection(db, "exam_results"), orderBy("timestamp", "desc"), limit(200)); const snap = await getDocs(q); let res = []; snap.forEach(d => res.push({id: d.id, ...d.data()})); if (filterId !== 'all') { res = res.filter(r => r.lessonId === filterId); } res.sort((a,b) => { let scoreA = a.total < 100 ? (a.score/a.total)*100 : a.score; let scoreB = b.total < 100 ? (b.score/b.total)*100 : b.score; if(scoreB !== scoreA) return scoreB - scoreA; return (a.duration||9999) - (b.duration||9999); }); currentReportData = res; document.getElementById('statTotal').textContent = res.length; let passCnt = 0; tb.innerHTML = ''; if(res.length === 0) { tb.innerHTML='<tr><td colspan="8" class="p-8 text-center text-gray-400">Chưa có dữ liệu.</td></tr>'; return; } res.slice(0, 500).forEach((r,i) => { let m = Math.floor((r.duration||0)/60), s = (r.duration||0)%60; let icon = (i===0?'🥇':(i===1?'🥈':(i===2?'🥉':i+1))); let date = r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : ''; let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let isPass = displayScore === 100; if(isPass) passCnt++; let statusHtml = isPass ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold border border-green-200">PASS</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold border border-red-200">FAIL</span>'; tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 text-lg font-bold text-gray-500 text-center">${icon}</td><td class="p-4"><p class="font-bold text-gray-800">${r.name}</p><p class="text-xs text-gray-400">${r.dvn}</p></td><td class="p-4 text-gray-600 max-w-xs truncate" title="${r.lessonTitle}">${r.lessonTitle}</td><td class="p-4 font-bold text-center text-gray-800">${displayScore}</td><td class="p-4 text-center">${statusHtml}</td><td class="p-4 font-mono text-xs text-gray-500">${m}p ${s}s</td><td class="p-4 text-xs text-gray-400">${date}</td><td class="p-4 text-right"><button onclick="deleteResult('${r.id}')" class="text-gray-300 hover:text-red-500 transition px-2 py-1"><i class="fa-solid fa-trash"></i></button></td></tr>`; }); document.getElementById('statPass').textContent = passCnt; document.getElementById('statFail').textContent = res.length - passCnt; }
+    window.deleteResult = async(id) => { if(confirm("Xóa kết quả này?")) { await deleteDoc(doc(db, "exam_results", id)); loadReports(); } }
+    window.exportToExcel = function() { if (currentReportData.length < 200 && !confirm("Bạn đang xuất dữ liệu giới hạn (200 dòng). Bạn có muốn tiếp tục không? (Nên bấm 'Tải tất cả' trước)")) return; const excelData = currentReportData.map((r, index) => { let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let m = Math.floor((r.duration||0)/60); let s = (r.duration||0)%60; return { "Hạng": index + 1, "Tên Nhân Viên": r.name, "Mã DVN": r.dvn, "Email": r.email, "Bài Học": r.lessonTitle, "Điểm Số (100)": displayScore, "Trạng Thái": displayScore === 100 ? "PASS" : "FAIL", "Thời gian làm": `${m} phút ${s} giây`, "Ngày thi": r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : '' }; }); const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KetQuaDaoTao"); XLSX.writeFile(wb, `YADEA_Report_${new Date().toISOString().slice(0,10)}.xlsx`); }
+
+    ldL(); loadUsers();
+  </script>
+</body>
+</html>
