@@ -85,7 +85,13 @@
         <div id="viewLessons" class="hidden flex-1 flex flex-col h-full bg-white">
             <header class="h-16 bg-white border-b flex justify-between items-center px-6"><h2 class="text-xl font-bold">Quản lý bài học</h2><button onclick="resetForm()" class="bg-gray-900 text-white text-sm px-4 py-2 rounded-lg font-bold"><i class="fa-solid fa-plus"></i> Tạo mới</button></header>
             <div class="flex-1 overflow-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-2 flex flex-col"><div id="lessonList" class="flex-1 overflow-y-auto space-y-2"></div></div>
+                <div class="lg:col-span-4 bg-white rounded-2xl shadow-sm border p-2 flex flex-col h-[calc(100vh-140px)]">
+                    <div class="p-2 border-b mb-2">
+                        <input id="searchLessonInput" onkeyup="filterAdminLessons()" placeholder="🔍 Tìm nhanh bài học..." class="w-full border bg-gray-50 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-500 transition">
+                    </div>
+                    <div id="lessonList" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+                </div>
+                
                 <div class="lg:col-span-8 space-y-6">
                     <div class="bg-white rounded-2xl shadow-sm border p-6">
                         <h3 id="formTitle" class="font-bold mb-4">Thông tin bài học</h3>
@@ -97,11 +103,21 @@
                             </div>
                             <div>
                                 <label class="text-xs font-bold">Danh mục</label>
-                                <select id="inpCategory" class="w-full border rounded p-2 text-sm">
+                                <select id="inpCategory" onchange="toggleSubInput()" class="w-full border rounded p-2 text-sm">
                                     <option value="video">Học qua Video</option>
                                     <option value="product">Sản phẩm</option>
                                     <option value="skill">Kỹ năng</option>
                                     <option value="culture">Văn hoá</option>
+                                </select>
+                            </div>
+                            <div id="divSubTag" class="hidden fade-in">
+                                <label class="text-xs font-bold text-orange-600">Phân loại (Năm/Dòng xe)</label>
+                                <select id="inpSubTag" class="w-full border border-orange-200 bg-orange-50 rounded p-2 text-sm font-bold text-gray-700 outline-none focus:border-orange-500">
+                                    <option value="">-- Không chọn --</option>
+                                    <option value="2025">Sản phẩm 2025</option>
+                                    <option value="2026">Sản phẩm 2026</option>
+                                    <option value="xe-dien">Xe máy điện</option>
+                                    <option value="xe-dap-dien">Xe đạp điện</option>
                                 </select>
                             </div>
                             <div><label class="text-xs font-bold">Thời lượng (hiển thị)</label><input id="inpDuration" class="w-full border rounded p-2 text-sm" placeholder="VD: 15"></div>
@@ -267,6 +283,7 @@
     let currentReportData = [], allShopsCache = [], dashboardData = {}, userCache = [];
     let currentChatUid = null;
     let shopNameMap = {}; 
+    let cachedAdminLessons = [];
     
     // UTILS
     const normalize = (str) => str ? String(str).trim().toUpperCase() : '';
@@ -284,7 +301,6 @@
         const statusFilter = document.getElementById('filterShopStatus').value;
         const search = document.getElementById('searchShop').value.toLowerCase();
         
-        // Ensure data
         if(allShopsCache.length === 0) await fetchShopData();
         if(userCache.length === 0) await loadUsers(true);
 
@@ -295,7 +311,6 @@
             const lessonOpt = document.getElementById('filterShopLesson').options[document.getElementById('filterShopLesson').selectedIndex];
             if(lessonOpt) lessonTitle = lessonOpt.text;
             
-            // Collect DVNs of users who finished this lesson
             userCache.forEach(u => {
                 if(u.completedActivities && u.completedActivities[`study_${lessonId}`] && u.dvnCode) {
                     finishedDvns.add(normalize(u.dvnCode));
@@ -385,7 +400,6 @@
     }
     async function loadFilterOptions(elementId) { const select = document.getElementById(elementId); if (select.options.length > 1) return; const snap = await getDocs(collection(db, "lessons")); snap.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.data().title; select.appendChild(opt); }); }
 
-    // --- CHAT LOGIC FOR ADMIN ---
     function listenToConversations() {
         const q = query(collection(db, "conversations"), orderBy("updatedAt", "desc"));
         onSnapshot(q, (snapshot) => {
@@ -412,7 +426,7 @@
         currentChatUid = uid;
         document.getElementById('chatHeaderName').textContent = name;
         document.getElementById('chatHeaderDvn').textContent = dvn;
-        updateDoc(doc(db, "conversations", uid), { isReadByAdmin: true }); // Mark read
+        updateDoc(doc(db, "conversations", uid), { isReadByAdmin: true }); 
         
         onSnapshot(doc(db, "conversations", uid), (docSnap) => {
             if(docSnap.exists()) {
@@ -442,7 +456,6 @@
         });
     }
 
-    // --- HELPER: GET SHOPS FOR MAPPING ---
     async function fetchShopData() {
         if(allShopsCache.length === 0) { 
             const sSnap = await getDocs(collection(db, "shops")); 
@@ -467,7 +480,6 @@
         } catch(e) { console.error(e); alert("Lỗi tải User: " + e.message); }
     }
     
-    // --- RENDER USER TABLE ---
     window.renderUserTable = function() {
         const tb = document.getElementById('userTableBody'); 
         const filterStatus = document.getElementById('filterUserStatus').value; 
@@ -517,7 +529,6 @@
         });
     }
 
-    // --- NEW FEATURE: TRAINING PROGRESS (WITH SHOP NAME MAPPING) ---
     window.loadProgress = async function() {
         const tb = document.getElementById('progressTableBody');
         const lessonId = document.getElementById('progressFilterLesson').value;
@@ -574,7 +585,6 @@
         XLSX.writeFile(wb, `TienDo_${lessonTitle}_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
-    // --- MAIN LOGIC FOR SHOP DATA TAB (UPDATED) ---
     window.loadShops = async function() { 
         const tb = document.getElementById('shopTableBody'); 
         const lessonId = document.getElementById('filterShopLesson').value; 
@@ -583,11 +593,9 @@
         
         tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>'; 
         
-        // 1. Ensure Shops and Users are loaded
         if(allShopsCache.length === 0) await fetchShopData();
         if(userCache.length === 0) await loadUsers(true);
 
-        // 2. Identify DVNs that have finished the lesson
         let finishedDvns = new Set();
         if(lessonId !== 'all') {
             userCache.forEach(u => {
@@ -597,7 +605,6 @@
             });
         }
         
-        // 3. Filter Shops based on criteria
         let displayList = allShopsCache.filter(s => { 
             const txt = ((s.dvn||'')+' '+(s.name||'')+' '+(s.saleRep||'')+' '+(s.director||'')+' '+(s.province||'')).toLowerCase(); 
             if (search && !txt.includes(search)) return false;
@@ -610,7 +617,6 @@
             return true;
         }); 
         
-        // 4. Render
         let doneCnt = 0; 
         tb.innerHTML = ''; 
         if(displayList.length === 0) { 
@@ -624,7 +630,6 @@
             }); 
         } 
         
-        // 5. Update Stats
         if(statusFilter !== 'all' && lessonId !== 'all') {
              document.getElementById('shopStatTotal').textContent = displayList.length;
              document.getElementById('shopStatDone').textContent = statusFilter === 'done' ? displayList.length : 0;
@@ -648,15 +653,166 @@
     window.changeRole = async(id, currentRole) => { const newRole = prompt("Nhập vai trò (learner/sale/director/admin):", currentRole); if(newRole && ['learner','sale','director','admin'].includes(newRole)) { await updateDoc(doc(db,"users",id),{role: newRole}); loadUsers(true); } }
     window.deleteUser = async(id) => { if(confirm("CẢNH BÁO: XÓA VĨNH VIỄN?")) { try { await deleteDoc(doc(db, "users", id)); userCache = userCache.filter(u => u.id !== id); renderUserTable(); } catch(e) { alert("Lỗi: " + e.message); } } }
 
-    // --- OTHER FUNCTIONS ---
     window.loadDashboard = async function(refresh = false) { const lessonId = document.getElementById('dashFilterLesson').value; const directorFilter = document.getElementById('dashFilterDirector').value; if(allShopsCache.length === 0 || refresh) { allShopsCache = []; const sSnap = await getDocs(collection(db, "shops")); sSnap.forEach(d => allShopsCache.push(d.data())); const directors = [...new Set(allShopsCache.map(s => s.director).filter(Boolean))]; const dSelect = document.getElementById('dashFilterDirector'); dSelect.innerHTML = '<option value="all">-- Tất cả GĐKV --</option>'; directors.forEach(d => { const opt=document.createElement('option'); opt.value=d; opt.textContent=d; dSelect.appendChild(opt); }); } let rQ = collection(db, "exam_results"); if(lessonId !== 'all') rQ = query(collection(db, "exam_results"), where("lessonId", "==", lessonId)); const rSnap = await getDocs(rQ); const results = []; rSnap.forEach(d => results.push(d.data())); let filteredShops = allShopsCache; if(directorFilter !== 'all') filteredShops = filteredShops.filter(s => s.director === directorFilter); const shopStats = {}, staffStats = {}, provinceStats = {}; filteredShops.forEach(s => { shopStats[s.dvn] = { name: s.name, passed: 0, totalScore: 0, attempts: 0, province: s.province }; if(!provinceStats[s.province]) provinceStats[s.province] = { passed: 0, total: 0 }; provinceStats[s.province].total++; }); let totalScoreSum = 0, totalAttempts = 0; results.forEach(r => { const dvn = r.dvn ? r.dvn.trim() : ''; if(shopStats[dvn]) { const score = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; if(!staffStats[r.uid]) staffStats[r.uid] = { name: r.name, scoreSum: 0, tests: 0, maxScore: 0, shopName: shopStats[dvn].name }; staffStats[r.uid].scoreSum += score; staffStats[r.uid].tests++; if(score > staffStats[r.uid].maxScore) staffStats[r.uid].maxScore = score; shopStats[dvn].totalScore += score; shopStats[dvn].attempts++; if(score === 100) shopStats[dvn].passed = 1; totalScoreSum += score; totalAttempts++; } }); const shopPassCount = Object.values(shopStats).filter(s => s.passed > 0).length; document.getElementById('kpiRate').textContent = (filteredShops.length > 0 ? Math.round((shopPassCount / filteredShops.length) * 100) : 0) + '%'; document.getElementById('kpiAvgScore').textContent = totalAttempts > 0 ? (totalScoreSum / totalAttempts).toFixed(1) : 0; document.getElementById('kpiShopPass').textContent = shopPassCount; document.getElementById('kpiShopTotal').textContent = `trên tổng số ${filteredShops.length} shop`; document.getElementById('kpiUserActive').textContent = Object.keys(staffStats).length; const topShops = Object.entries(shopStats).map(([dvn, s]) => ({ name: s.name, avg: s.attempts > 0 ? Math.round(s.totalScore/s.attempts) : 0 })).sort((a,b) => b.avg - a.avg).slice(0, 10); const topStaff = Object.values(staffStats).map(s => ({ name: s.name, score: s.maxScore, shop: s.shopName })).sort((a,b) => b.score - a.score).slice(0, 10); const provData = Object.entries(provinceStats).map(([prov, dat]) => { const shopsInProv = filteredShops.filter(s => s.province === prov); const passedInProv = shopsInProv.filter(s => shopStats[s.dvn] && shopStats[s.dvn].passed > 0).length; return { name: prov || 'Chưa XĐ', y: shopsInProv.length > 0 ? Math.round((passedInProv/shopsInProv.length)*100) : 0 }; }).sort((a,b) => b.y - a.y); renderChart('chartTopShops', 'column', 'Top 10 Cửa Hàng (Điểm TB)', topShops.map(s=>s.name), topShops.map(s=>s.avg), '#f97316'); renderChart('chartTopStaff', 'bar', 'Top 10 Nhân Viên (Điểm Cao)', topStaff.map(s=>`${s.name} (${s.shop})`), topStaff.map(s=>s.score), '#3b82f6'); renderChart('chartRegionMap', 'column', 'Tỷ Lệ Hoàn Thành (%)', provData.map(s=>s.name), provData.map(s=>s.y), '#10b981'); dashboardData = { filteredShops, shopStats }; }
     function renderChart(id, type, title, cats, data, color) { Highcharts.chart(id, { chart: { type: type }, title: { text: null }, xAxis: { categories: cats }, yAxis: { title: { text: null } }, series: [{ name: title, data: data, color: color, showInLegend: false }], credits: { enabled: false } }); }
     window.exportKPIDashboard = function() { if(!dashboardData.filteredShops) return alert("Vui lòng tải dữ liệu trước!"); const rows = dashboardData.filteredShops.map(s => { const stat = dashboardData.shopStats[s.dvn] || { passed: 0, attempts: 0 }; return { "Mã DVN": s.dvn, "Tên Cửa Hàng": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Số Lượt Thi": stat.attempts, "Trạng Thái": stat.passed > 0 ? "ĐẠT" : "CHƯA ĐẠT" }; }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KPI_Report"); XLSX.writeFile(wb, `YADEA_KPI_${new Date().toISOString().slice(0,10)}.xlsx`); }
     let curL = null, loadedQuestions = [], editingQId = null; const els = {t:'inpTitle',c:'inpCategory',d:'inpDuration',u:'inpContentUrl',i:'inpImage', de:'inpDesc', minT: 'inpMinTime'};
-    async function ldL() { const l = document.getElementById('lessonList'); l.innerHTML='...'; const s = await getDocs(query(collection(db,"lessons"),orderBy("createdAt","desc"))); l.innerHTML=''; s.forEach(d=>{const da=d.data(); let rolesIcon = ''; if(da.targetRoles && da.targetRoles.includes('sale')) rolesIcon += '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded ml-1">SALE</span>'; if(da.targetRoles && da.targetRoles.includes('director')) rolesIcon += '<span class="text-[10px] bg-purple-100 text-purple-600 px-1 rounded ml-1">GĐ</span>'; l.innerHTML+=`<div onclick="sel('${d.id}')" class="p-2 border rounded cursor-pointer hover:bg-gray-50 flex gap-2 items-center"><img src="${da.bannerUrl||da.image}" class="w-8 h-8 rounded bg-gray-200"><div class="flex-1 min-w-0"><div class="truncate text-xs font-bold">${da.title}</div><div class="mt-1">${rolesIcon}</div></div></div>`;}); }
-    window.sel = async(id) => { const snap = await getDocs(query(collection(db, "lessons"), where("__name__", "==", id))); snap.forEach(doc=>{ const da=doc.data(); curL=id; document.getElementById('formTitle').textContent="Sửa: "+da.title; document.getElementById('btnSaveLesson').textContent="Cập nhật"; document.getElementById('btnDeleteLesson').classList.remove('hidden'); document.getElementById('quizSection').classList.remove('hidden'); document.getElementById(els.t).value=da.title; document.getElementById(els.c).value=da.category; document.getElementById(els.d).value=da.duration; document.getElementById(els.u).value=da.contentUrl; document.getElementById(els.i).value=da.bannerUrl||''; document.getElementById(els.de).value=da.description||''; document.getElementById(els.minT).value = Math.round((da.minStudyTime||300)/60); const roles = da.targetRoles || ['learner']; document.getElementById('roleLearner').checked = roles.includes('learner'); document.getElementById('roleSale').checked = roles.includes('sale'); document.getElementById('roleDirector').checked = roles.includes('director'); cancelEditQ(); ldQ(id); }); }
-    window.resetForm = () => { curL=null; cancelEditQ(); document.getElementById('formTitle').textContent="Thêm mới"; document.getElementById('btnSaveLesson').textContent="Lưu"; document.getElementById('btnDeleteLesson').classList.add('hidden'); document.getElementById('quizSection').classList.add('hidden'); for(let k in els) document.getElementById(els[k]).value=''; document.getElementById('inpMinTime').value = 5; document.getElementById('roleLearner').checked = true; document.getElementById('roleSale').checked = false; document.getElementById('roleDirector').checked = false; }
-    document.getElementById('btnSaveLesson').onclick = async() => { const targetRoles = []; if(document.getElementById('roleLearner').checked) targetRoles.push('learner'); if(document.getElementById('roleSale').checked) targetRoles.push('sale'); if(document.getElementById('roleDirector').checked) targetRoles.push('director'); if(targetRoles.length === 0) targetRoles.push('learner'); const minMins = parseInt(document.getElementById(els.minT).value) || 5; const da = {title:document.getElementById(els.t).value, category:document.getElementById(els.c).value, duration:document.getElementById(els.d).value, contentUrl:document.getElementById(els.u).value, bannerUrl:document.getElementById(els.i).value, description:document.getElementById(els.de).value, minStudyTime: minMins*60, targetRoles: targetRoles, createdAt:serverTimestamp()}; if(curL) await updateDoc(doc(db,"lessons",curL),da); else { const r=await addDoc(collection(db,"lessons"),da); curL=r.id; } alert("Đã lưu"); ldL(); }
+    
+    // --- MODIFIED: LDLESSONS WITH SORTING ---
+    async function ldL() { 
+        const l = document.getElementById('lessonList'); 
+        l.innerHTML = '<div class="text-center p-4 text-gray-400 text-xs"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>'; 
+        
+        const s = await getDocs(query(collection(db, "lessons"), orderBy("createdAt", "desc"))); 
+        
+        cachedAdminLessons = [];
+        s.forEach(d => {
+            const da = d.data();
+            if (da.displayOrder === undefined) da.displayOrder = 9999; 
+            cachedAdminLessons.push({ id: d.id, ...da });
+        });
+
+        cachedAdminLessons.sort((a, b) => {
+            if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
+            return b.createdAt - a.createdAt; 
+        });
+
+        renderAdminLessonList(cachedAdminLessons);
+    }
+
+    // --- MODIFIED: RENDER LIST WITH MOVE BUTTONS ---
+    window.renderAdminLessonList = (list) => {
+        const l = document.getElementById('lessonList');
+        l.innerHTML = '';
+        
+        if(list.length === 0) {
+            l.innerHTML = '<div class="text-center p-4 text-gray-400 text-xs">Không tìm thấy bài học.</div>';
+            return;
+        }
+
+        list.forEach((da, index) => {
+            let rolesIcon = ''; 
+            if(da.targetRoles && da.targetRoles.includes('sale')) rolesIcon += '<span class="text-[10px] bg-orange-100 text-orange-600 px-1 rounded ml-1 font-bold">SALE</span>'; 
+            if(da.targetRoles && da.targetRoles.includes('director')) rolesIcon += '<span class="text-[10px] bg-purple-100 text-purple-600 px-1 rounded ml-1 font-bold">GĐ</span>'; 
+            
+            const isFirst = index === 0;
+            const isLast = index === list.length - 1;
+            
+            const upBtn = isFirst ? '<span class="w-6"></span>' : `<button onclick="moveLesson('${da.id}', -1, event)" class="w-6 h-6 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600 transition" title="Lên trên"><i class="fa-solid fa-chevron-up"></i></button>`;
+            const downBtn = isLast ? '<span class="w-6"></span>' : `<button onclick="moveLesson('${da.id}', 1, event)" class="w-6 h-6 hover:bg-gray-200 rounded text-gray-500 hover:text-blue-600 transition" title="Xuống dưới"><i class="fa-solid fa-chevron-down"></i></button>`;
+
+            l.innerHTML += `
+            <div onclick="sel('${da.id}')" class="group p-2 border rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-200 bg-white transition flex gap-3 items-center relative">
+                <div class="flex flex-col gap-1 items-center justify-center border-r pr-2 border-gray-100 opacity-30 group-hover:opacity-100 transition">
+                    ${upBtn}
+                    ${downBtn}
+                </div>
+                <img src="${da.bannerUrl||da.image}" class="w-10 h-10 rounded-lg object-cover bg-gray-100 border border-gray-200">
+                <div class="flex-1 min-w-0">
+                    <div class="truncate text-xs font-bold text-gray-800">${da.title}</div>
+                    <div class="mt-1 flex items-center">${rolesIcon} <span class="text-[10px] text-gray-400 ml-auto mr-2">${da.duration}p</span></div>
+                </div>
+            </div>`;
+        });
+    }
+
+    window.filterAdminLessons = () => {
+        const keyword = document.getElementById('searchLessonInput').value.toLowerCase();
+        const filtered = cachedAdminLessons.filter(l => l.title.toLowerCase().includes(keyword));
+        renderAdminLessonList(filtered);
+    }
+    
+    // --- MODIFIED: MOVE LESSON FUNCTION ---
+    window.moveLesson = async (id, direction, event) => {
+        event.stopPropagation(); 
+        const index = cachedAdminLessons.findIndex(x => x.id === id);
+        if (index === -1) return;
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= cachedAdminLessons.length) return;
+
+        const currentItem = cachedAdminLessons[index];
+        const targetItem = cachedAdminLessons[targetIndex];
+
+        let order1 = currentItem.displayOrder;
+        let order2 = targetItem.displayOrder;
+
+        if(order1 === 9999 || order1 === undefined) order1 = index;
+        if(order2 === 9999 || order2 === undefined) order2 = targetIndex;
+        if (order1 === order2) { order1 = index; order2 = targetIndex; }
+
+        const temp = order1;
+        order1 = order2;
+        order2 = temp;
+
+        cachedAdminLessons[index].displayOrder = order1;
+        cachedAdminLessons[targetIndex].displayOrder = order2;
+        [cachedAdminLessons[index], cachedAdminLessons[targetIndex]] = [cachedAdminLessons[targetIndex], cachedAdminLessons[index]];
+        renderAdminLessonList(cachedAdminLessons);
+
+        try {
+            await updateDoc(doc(db, "lessons", currentItem.id), { displayOrder: order1 });
+            await updateDoc(doc(db, "lessons", targetItem.id), { displayOrder: order2 });
+        } catch(e) {
+            console.error("Lỗi lưu thứ tự:", e);
+            ldL(); 
+        }
+    }
+
+    // --- MODIFIED: TOGGLE SUB INPUT ---
+    window.toggleSubInput = () => {
+        const cat = document.getElementById('inpCategory').value;
+        const sub = document.getElementById('divSubTag');
+        if(cat === 'product') sub.classList.remove('hidden');
+        else { sub.classList.add('hidden'); document.getElementById('inpSubTag').value = ''; }
+    }
+
+    window.sel = async(id) => { const snap = await getDocs(query(collection(db, "lessons"), where("__name__", "==", id))); snap.forEach(doc=>{ const da=doc.data(); curL=id; document.getElementById('formTitle').textContent="Sửa: "+da.title; document.getElementById('btnSaveLesson').textContent="Cập nhật"; document.getElementById('btnDeleteLesson').classList.remove('hidden'); document.getElementById('quizSection').classList.remove('hidden'); document.getElementById(els.t).value=da.title; document.getElementById(els.c).value=da.category; document.getElementById(els.d).value=da.duration; document.getElementById(els.u).value=da.contentUrl; document.getElementById(els.i).value=da.bannerUrl||''; document.getElementById(els.de).value=da.description||''; document.getElementById(els.minT).value = Math.round((da.minStudyTime||300)/60); const roles = da.targetRoles || ['learner']; document.getElementById('roleLearner').checked = roles.includes('learner'); document.getElementById('roleSale').checked = roles.includes('sale'); document.getElementById('roleDirector').checked = roles.includes('director'); 
+    
+    // Load Subtag
+    if(da.category === 'product') {
+        document.getElementById('divSubTag').classList.remove('hidden');
+        document.getElementById('inpSubTag').value = da.subTag || '';
+    } else {
+        document.getElementById('divSubTag').classList.add('hidden');
+        document.getElementById('inpSubTag').value = '';
+    }
+
+    cancelEditQ(); ldQ(id); }); }
+    
+    window.resetForm = () => { curL=null; cancelEditQ(); document.getElementById('formTitle').textContent="Thêm mới"; document.getElementById('btnSaveLesson').textContent="Lưu"; document.getElementById('btnDeleteLesson').classList.add('hidden'); document.getElementById('quizSection').classList.add('hidden'); for(let k in els) document.getElementById(els[k]).value=''; document.getElementById('inpMinTime').value = 5; document.getElementById('roleLearner').checked = true; document.getElementById('roleSale').checked = false; document.getElementById('roleDirector').checked = false; document.getElementById('divSubTag').classList.add('hidden'); document.getElementById('inpSubTag').value=''; }
+    
+    // --- MODIFIED: SAVE LESSON (ADD DISPLAY ORDER 0 AND SUBTAG) ---
+    document.getElementById('btnSaveLesson').onclick = async() => { 
+        const targetRoles = []; 
+        if(document.getElementById('roleLearner').checked) targetRoles.push('learner'); 
+        if(document.getElementById('roleSale').checked) targetRoles.push('sale'); 
+        if(document.getElementById('roleDirector').checked) targetRoles.push('director'); 
+        if(targetRoles.length === 0) targetRoles.push('learner'); 
+        
+        const minMins = parseInt(document.getElementById(els.minT).value) || 5; 
+        const subTag = document.getElementById('inpSubTag').value;
+        let desc = document.getElementById(els.de).value;
+
+        // Auto append tag to description so search works in index.html
+        if(subTag && !desc.includes(subTag)) {
+            desc += ` [${subTag}]`;
+        }
+
+        const da = {
+            title:document.getElementById(els.t).value, 
+            category:document.getElementById(els.c).value, 
+            duration:document.getElementById(els.d).value, 
+            contentUrl:document.getElementById(els.u).value, 
+            bannerUrl:document.getElementById(els.i).value, 
+            description: desc, 
+            minStudyTime: minMins*60, 
+            targetRoles: targetRoles,
+            subTag: subTag
+        }; 
+        
+        if(curL) { await updateDoc(doc(db,"lessons",curL),da); } else { da.createdAt=serverTimestamp(); da.displayOrder=0; const r=await addDoc(collection(db,"lessons"),da); curL=r.id; } alert("Đã lưu"); ldL(); 
+    }
+
     document.getElementById('btnDeleteLesson').onclick = async() => { if(confirm("Xóa?")) { await deleteDoc(doc(db,"lessons",curL)); resetForm(); ldL(); } }
     async function ldQ(id) { const ql = document.getElementById('questionList'); ql.innerHTML=''; const s = await getDocs(query(collection(db,"questions"),where("lessonId","==",id))); loadedQuestions=[]; s.forEach(d=>{const da=d.data(); da.id=d.id; loadedQuestions.push(da); ql.innerHTML+=`<div class="text-xs border p-3 rounded flex justify-between bg-gray-50"><div class="flex-1 mr-2"><b class="text-gray-800 block mb-1">${da.text}</b><span class="text-green-600 bg-green-50 px-1.5 border border-green-100 rounded">Đúng: ${da.options[da.correctIndex]}</span></div><div class="flex gap-2"><button onclick="editQ('${d.id}')" class="text-blue-500 font-bold border border-blue-200 bg-white px-2 rounded">Sửa</button><button onclick="dQ('${d.id}')" class="text-red-500 font-bold border border-red-200 bg-white px-2 rounded">Xóa</button></div></div>`;}); }
     window.editQ = (id) => { const q = loadedQuestions.find(x => x.id === id); if(!q) return; editingQId = id; document.getElementById('qText').value = q.text; document.getElementById('qOp0').value = q.options[0]; document.getElementById('qOp1').value = q.options[1]; document.getElementById('qOp2').value = q.options[2]; document.getElementById('qOp3').value = q.options[3]; document.getElementById('qCorrect').value = q.correctIndex; const btn = document.getElementById('btnAddQuestion'); btn.textContent = "Cập nhật"; btn.classList.add('bg-blue-600'); document.getElementById('btnCancelEditQ').classList.remove('hidden'); document.getElementById('quizInputBox').classList.add('border-blue-300', 'bg-blue-50'); document.getElementById('qText').focus(); }
