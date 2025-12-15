@@ -305,8 +305,7 @@
                         <input onkeyup="filterChatList(this)" placeholder="🔍 Tìm tên học viên..." class="w-full bg-gray-100 border-none rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-orange-300 transition">
                     </div>
 
-                    <div id="chatUserList" class="flex-1 overflow-y-auto pb-20 md:pb-0">
-                        </div>
+                    <div id="chatUserList" class="flex-1 overflow-y-auto pb-20 md:pb-0"></div>
                 </div>
 
                 <div id="chatAreaCol" class="w-full flex-1 flex flex-col h-full bg-white absolute md:relative translate-x-full md:translate-x-0 transition-transform duration-300 z-20">
@@ -487,6 +486,15 @@
             document.getElementById('sidebarOverlay').classList.add('hidden');
         }
 
+        // RESET CHAT STATE WHEN SWITCHING TABS
+        const listCol = document.getElementById('chatListCol');
+        const chatCol = document.getElementById('chatAreaCol');
+        if(listCol && chatCol) {
+             listCol.classList.remove('-translate-x-full'); 
+             chatCol.classList.add('translate-x-full'); 
+             currentChatUid = null;
+        }
+
         ['viewLessons','viewUsers','viewReports','viewShops','viewDashboard','viewChat','viewProgress'].forEach(x=>document.getElementById(x).classList.add('hidden'));
         ['tabLessons','tabUsers','tabReports','tabShops','tabDashboard','tabChat','tabProgress'].forEach(x=>document.getElementById(x).classList.remove('active'));
         document.getElementById('view'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('hidden');
@@ -505,14 +513,14 @@
 
     // --- CHAT SYSTEM LOGIC CẬP NHẬT ---
     
-    // 1. Hàm nghe tin nhắn (Update: có thêm biến để lưu data gốc phục vụ search)
+    // 1. Hàm nghe tin nhắn
     let rawChatData = [];
     
     function listenToConversations() {
         const q = query(collection(db, "conversations"), orderBy("updatedAt", "desc"));
         onSnapshot(q, (snapshot) => {
             let unreadCount = 0;
-            rawChatData = []; // Reset cache
+            rawChatData = []; 
             
             snapshot.forEach(docSnap => {
                 const d = docSnap.data();
@@ -523,16 +531,16 @@
             
             renderChatList(rawChatData);
 
-            // Cập nhật Badge thông báo
-            const badge = document.getElementById('chatUnreadCount');
-            if(badge) {
-                badge.textContent = unreadCount;
-                badge.classList.toggle('hidden', unreadCount === 0);
-            }
+            // Cập nhật Badge thông báo (Sidebar & Chat Header)
+            const badges = document.querySelectorAll('#chatUnreadCount');
+            badges.forEach(b => {
+                b.textContent = unreadCount;
+                b.classList.toggle('hidden', unreadCount === 0);
+            });
         });
     }
 
-    // Hàm render list riêng để hỗ trợ tìm kiếm
+    // 2. Render List
     window.filterChatList = (input) => {
         const k = input.value.toLowerCase();
         const filtered = rawChatData.filter(d => (d.studentName && d.studentName.toLowerCase().includes(k)) || (d.dvn && d.dvn.toLowerCase().includes(k)));
@@ -564,7 +572,7 @@
         });
     }
 
-    // 2. Hàm mở chat (Update: Xử lý Mobile Slide)
+    // 3. Open Chat + Push History State (Fix physical back button)
     window.openChat = (uid, name, dvn) => {
         currentChatUid = uid;
         document.getElementById('chatHeaderName').innerHTML = `<i class="fa-solid fa-circle-user text-gray-400 text-lg"></i> ${name}`;
@@ -578,10 +586,12 @@
         const listCol = document.getElementById('chatListCol');
         const chatCol = document.getElementById('chatAreaCol');
         
-        // Trên mobile: Ẩn list bằng cách đẩy sang trái, hiện chat bằng cách đẩy về 0
         if(window.innerWidth < 768) {
             listCol.classList.add('-translate-x-full'); 
             chatCol.classList.remove('translate-x-full'); 
+            
+            // Push state for physical back button
+            history.pushState({chatOpen: true}, "");
         }
 
         // Đánh dấu đã đọc
@@ -594,7 +604,6 @@
                 const div = document.getElementById('adminChatMessages');
                 div.innerHTML = '';
                 
-                // Group tin nhắn theo thời gian (Optional - làm cho đẹp)
                 msgs.forEach(m => {
                     const isMe = m.sender === 'admin';
                     div.innerHTML += `
@@ -607,33 +616,37 @@
             }
         });
         
-        // Re-render list để update trạng thái active
         renderChatList(rawChatData);
     }
 
-    // 3. Hàm đóng chat Mobile (Mới)
+    // 4. Close Chat Mobile
     window.closeChatMobile = () => {
         currentChatUid = null;
         const listCol = document.getElementById('chatListCol');
         const chatCol = document.getElementById('chatAreaCol');
         
-        // Slide ngược lại
         listCol.classList.remove('-translate-x-full');
         chatCol.classList.add('translate-x-full');
         
-        // Ẩn bàn phím nếu đang mở
         document.getElementById('adminChatInput').blur();
     }
     
-    // 4. Update hàm gửi tin nhắn (Dùng input ID mới)
+    // 5. Handle Physical Back Button
+    window.onpopstate = function(event) {
+        if(window.innerWidth < 768) {
+            closeChatMobile();
+        }
+    };
+    
+    // 6. Send Message
     window.sendAdminMsg = async () => {
         if(!currentChatUid) return;
-        const input = document.getElementById('adminChatInput'); // ID này đã đổi ở HTML trên
+        const input = document.getElementById('adminChatInput');
         const txt = input.value.trim();
         if(!txt) return;
         
         input.value = '';
-        input.style.height = 'auto'; // Reset chiều cao textarea
+        input.style.height = 'auto'; 
         
         await updateDoc(doc(db, "conversations", currentChatUid), {
             messages: arrayUnion({ sender: 'admin', text: txt, time: Date.now() }),
@@ -643,11 +656,11 @@
         });
     }
 
-    // 5. Init Emoji cho Admin
+    // 7. Init Emoji
     const emojisAdmin = ["😀","😁","😂","🤣","😍","🥰","😎","🤔","😭","😤","👍","👎","👌","❤","🧡","💔","🎉","🔥","✨","✅","❌","👋","🙏","🏍"];
     const pickerAdmin = document.getElementById('emojiPickerAdmin');
     if(pickerAdmin) {
-        pickerAdmin.innerHTML = ''; // Clear cũ
+        pickerAdmin.innerHTML = '';
         emojisAdmin.forEach(icon => {
             const btn = document.createElement('button');
             btn.className = "hover:bg-gray-100 p-1 rounded text-2xl transition w-8 h-8 flex items-center justify-center";
