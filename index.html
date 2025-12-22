@@ -273,6 +273,7 @@
     const firebaseConfig = { apiKey: "AIzaSyCJj_0-dVddgNBwPsm662guADskM5N9Q6I", authDomain: "e-learning-8d182.firebaseapp.com", projectId: "e-learning-8d182", storageBucket: "e-learning-8d182.firebasestorage.app", messagingSenderId: "1008025386680", appId: "1:1008025386680:web:5c91aa14e056e4578b7e4d", measurementId: "G-L6P2B51170" };
     const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
 
+    // --- CẤU HÌNH QUẢN LÝ VIEW ---
     const listViews = ['heroSection', 'listView', 'detailView', 'resultView', 'luckyWheelView', 'quizSectionContainer'];
 
     let currentUser = null, allLessons = [], currentCategory = 'all', currentLesson = null;
@@ -297,17 +298,24 @@
         return array;
     }
 
+    // --- HÀM ẨN TẤT CẢ VIEW (Fix lỗi nhảy trang & chồng lấn) ---
     function hideAllViews() {
+        // 1. Ẩn tất cả các view chính
         listViews.forEach(id => {
             const el = document.getElementById(id);
             if(el) el.classList.add('hidden');
         });
+        
+        // 2. Ẩn các nút/giao diện phụ
         document.getElementById('startQuizBtnContainer').classList.add('hidden');
         document.getElementById('studyTimerBox').classList.add('hidden');
+        
+        // 3. Reset thanh cuộn lên đầu trang (Fix lỗi nhảy trang)
         const mainScroll = document.getElementById('mainScroll');
         if(mainScroll) mainScroll.scrollTop = 0;
     }
 
+    // --- HÀM MỚI: switchPage (Dùng chung cho cả Desktop & Mobile) ---
     window.switchPage = (cat, btnElement) => {
         hideAllViews();
         
@@ -471,33 +479,60 @@
         updateUserStatsUI({ ...uData, points: newPoints, stars: stars }); showToast(`🎉 +${amount} Điểm: ${reason}`);
     }
     
+    // --- FIX TIMER: Reset + Check History ---
     function initStudyTimer(lessonId, targetSeconds) {
         clearInterval(studyInterval); studySeconds = 0; isUserActive = true;
+        const timerDisplay = document.getElementById('studyTimeDisplay'); 
+        const targetDisplay = document.getElementById('studyTargetDisplay');
+        
+        // Reset hiển thị timer về 00:00 và màu mặc định
+        timerDisplay.textContent = "00:00";
+        timerDisplay.className = "font-mono font-bold text-gray-800"; // Reset class màu
+        
         const userRef = doc(db, "users", currentUser.uid);
         getDoc(userRef).then(snap => {
             const history = snap.data().completedActivities || {};
+            
+            // Kiểm tra nếu đã học xong từ trước
             if(history[`study_${lessonId}`]) { 
-                document.getElementById('studyTimeDisplay').textContent = "ĐÃ HOÀN THÀNH"; 
-                document.getElementById('studyTimeDisplay').classList.add('text-green-600');
-                document.getElementById('startQuizBtnContainer').classList.remove('hidden'); return; 
+                timerDisplay.textContent = "ĐÃ HOÀN THÀNH"; 
+                timerDisplay.classList.remove('text-gray-800');
+                timerDisplay.classList.add('text-green-600');
+                targetDisplay.textContent = ""; // Xóa target time khi đã xong
+                document.getElementById('startQuizBtnContainer').classList.remove('hidden'); 
+                return; 
             }
-            const timerDisplay = document.getElementById('studyTimeDisplay'); const targetDisplay = document.getElementById('studyTargetDisplay');
+
+            // Nếu chưa học xong, bắt đầu đếm
             targetDisplay.textContent = `${Math.floor(targetSeconds/60).toString().padStart(2,'0')}:${(targetSeconds%60).toString().padStart(2,'0')}`;
+            
             const resetIdle = () => { isUserActive = true; clearTimeout(idleTimer); idleTimer = setTimeout(() => isUserActive = false, 30000); };
             ['mousemove', 'keydown', 'scroll', 'click'].forEach(evt => window.addEventListener(evt, resetIdle)); resetIdle();
+            
             studyInterval = setInterval(() => {
                 if (isUserActive && !document.hidden) { 
                     studySeconds++; 
                     const m = Math.floor(studySeconds/60).toString().padStart(2,'0'); 
                     const s = (studySeconds%60).toString().padStart(2,'0'); 
-                    timerDisplay.textContent = `${m}:${s}`; timerDisplay.classList.remove('text-gray-400'); timerDisplay.classList.add('text-green-600'); 
+                    timerDisplay.textContent = `${m}:${s}`; 
+                    
+                    // Hiệu ứng đang đếm
+                    timerDisplay.classList.remove('text-gray-400'); 
+                    timerDisplay.classList.add('text-green-600'); 
+                    
                     if (studySeconds >= targetSeconds) { 
-                        clearInterval(studyInterval); timerDisplay.textContent = "ĐÃ HOÀN THÀNH"; 
+                        clearInterval(studyInterval); 
+                        timerDisplay.textContent = "ĐÃ HOÀN THÀNH"; 
+                        targetDisplay.textContent = "";
                         addPoints(10, 'Hoàn thành bài học', 'study', lessonId); 
                         document.getElementById('startQuizBtnContainer').classList.remove('hidden');
                         showToast("Bạn đã hoàn thành bài học! Có thể làm bài kiểm tra.");
                     } 
-                } else { timerDisplay.classList.add('text-gray-400'); }
+                } else { 
+                    // Người dùng không tương tác (idle)
+                    timerDisplay.classList.remove('text-green-600');
+                    timerDisplay.classList.add('text-gray-400'); 
+                }
             }, 1000);
         });
     }
@@ -552,7 +587,12 @@
         else { viewer.innerHTML = '<p class="text-white">Không có nội dung</p>'; } 
         
         document.getElementById('quizSectionContainer').classList.add('hidden'); document.getElementById('startQuizBtnContainer').classList.add('hidden'); 
-        const targetSec = lesson.minStudyTime || 300; initStudyTimer(lesson.id, targetSec); 
+        
+        // --- FIX: Hiện lại box thời gian khi mở bài ---
+        document.getElementById('studyTimerBox').classList.remove('hidden');
+        
+        const targetSec = lesson.minStudyTime || 300; 
+        initStudyTimer(lesson.id, targetSec); 
     }
     
     window.startQuiz = async () => { document.getElementById('startQuizBtnContainer').classList.add('hidden'); document.getElementById('quizSectionContainer').classList.remove('hidden'); document.getElementById('quizSectionContainer').scrollIntoView({behavior:'smooth'}); await initQuiz(currentLesson.id); }
@@ -677,7 +717,6 @@
                     const mq = document.getElementById('systemMarquee');
                     const txt = document.getElementById('marqueeText');
                     mq.classList.remove('hidden');
-                    // Tính thời gian chạy dựa trên độ dài
                     const duration = Math.max(10, data.notification.length / 5); 
                     txt.style.animationDuration = duration + 's';
                     txt.textContent = data.notification;
@@ -697,7 +736,6 @@
         });
     }
 
-    // --- CẤU HÌNH QUÀ TẶNG MỚI (6 Ô) ---
     const prizes = [
         { label: "Voucher\n500K", icon: "fa-ticket", chance: 10, color: "#ffffff", text: "#ef4444" }, 
         { label: "Pin Sạc\nDự Phòng", icon: "fa-battery-full", chance: 25, color: "#ef4444", text: "#ffffff" },
@@ -716,7 +754,6 @@
         const labelsContainer = document.getElementById('wheelLabels');
         const dotsContainer = document.getElementById('goldDotsContainer');
         
-        // Tạo đèn LED viền
         if(dotsContainer.children.length === 0) {
             for(let i=0; i<24; i++) {
                 const dot = document.createElement('div'); dot.className = 'gold-dot';
@@ -733,44 +770,32 @@
         const segAngle = 360 / prizes.length; 
 
         prizes.forEach((p, i) => {
-            // Tạo màu nền
             gradientStr += `${p.color} ${i * segAngle}deg ${(i + 1) * segAngle}deg,`;
-
-            // Tạo nhãn chữ
             const label = document.createElement('div');
             label.className = 'wheel-label';
-            
-            // Xử lý label
             let htmlLabel = p.label.replace(/\n/g, '<br/>');
             label.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${htmlLabel}</span>`;
             label.style.color = p.text;
-            
-            // --- LOGIC CĂN CHỈNH TÂM TUYỆT ĐỐI ---
             const rotate = i * segAngle + segAngle / 2;
             const dist = window.innerWidth < 768 ? -75 : -110; 
             label.style.transform = `rotate(${rotate}deg) translateY(${dist}px)`; 
-
             labelsContainer.appendChild(label);
         });
         
         wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
     }
 
-    // --- HÀM CHUYỂN SANG VÒNG QUAY (Đã sửa) ---
     window.switchLuckyWheelView = () => {
-        // Ẩn sạch sẽ mọi thứ
         hideAllViews();
-        
-        // Chỉ hiện vòng quay
         document.getElementById('luckyWheelView').classList.remove('hidden');
-        
-        // Khởi tạo lại
         updateSpinUI();
         initWheelUI(); 
-        
-        // Ẩn filter bar mobile nếu có
         const filterBar = document.getElementById('mobileFilterBar');
         if(filterBar) filterBar.classList.add('hidden');
+        
+        document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+        const btn = document.querySelector('[data-category="luckywheel"]');
+        if(btn) btn.classList.add('active');
     };
 
     async function updateSpinUI() {
@@ -806,8 +831,6 @@
         
         const segmentDeg = 360 / prizes.length; 
         const extraRounds = 8 * 360; 
-        
-        // Tính góc dừng chuẩn
         const stopDeg = extraRounds + (360 - (winIndex * segmentDeg)) - (segmentDeg / 2);
         
         wheelRotation = stopDeg;
