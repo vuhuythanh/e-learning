@@ -28,16 +28,52 @@
     .msg-received { background: #ffffff; color: #374151; border: 1px solid #e5e7eb; align-self: flex-start; border-bottom-left-radius: 2px; margin-right: auto; }
     #chatMessages { display: flex; flex-direction: column; padding: 16px; background-color: #f9fafb; }
 
-    /* --- CSS CHO CHỮ CHẠY (MARQUEE) --- */
-    @keyframes marquee { 
-        0% { transform: translateX(100%); } 
-        100% { transform: translateX(-100%); } 
+    /* --- CSS MARQUEE --- */
+    @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    .animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; min-width: 100%; }
+
+    /* --- CSS QUIZ PAGINATION (CẬP NHẬT: Ô VUÔNG & MÀU CAM) --- */
+    .quiz-nav-btn {
+        width: 40px; height: 40px; /* Hình vuông */
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #e5e7eb;
+        background-color: white;
+        color: #374151;
+        font-weight: bold;
+        font-size: 14px;
+        border-radius: 8px; /* Bo góc nhẹ */
+        cursor: pointer;
+        transition: all 0.2s;
     }
-    .animate-marquee { 
-        display: inline-block; 
-        white-space: nowrap; 
-        animation: marquee 20s linear infinite; 
-        min-width: 100%;
+    .quiz-nav-btn:hover { border-color: #f97316; color: #f97316; }
+    
+    /* Ô đang chọn (Active) */
+    .quiz-nav-btn.active {
+        border: 2px solid #f97316;
+        color: #f97316;
+        transform: scale(1.1);
+    }
+    
+    /* Ô ĐÃ TRẢ LỜI (Answered) -> Tô màu cam */
+    .quiz-nav-btn.answered {
+        background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 2px 5px rgba(234, 88, 12, 0.4);
+    }
+
+    /* --- CSS MOBILE NAV SCROLL (CẬP NHẬT: KÉO QUA LẠI) --- */
+    .mobile-nav-container {
+        overflow-x: auto; /* Cho phép cuộn ngang */
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch; /* Cuộn mượt trên iOS */
+        justify-content: flex-start; /* Căn trái để cuộn */
+    }
+    .mobile-nav-container::-webkit-scrollbar { display: none; } /* Ẩn thanh cuộn */
+    .nav-mobile-btn {
+        min-width: 70px; /* Đảm bảo nút không bị bóp méo */
+        flex-shrink: 0;
     }
 
     /* --- STYLE VÒNG QUAY --- */
@@ -250,12 +286,34 @@
       </div>
     </main>
 
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-between items-center px-4 py-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-        <button class="nav-mobile-btn active flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('all', this)"><i class="fa-solid fa-house text-lg mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wide">Home</span></button>
-        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('video', this)"><i class="fa-solid fa-circle-play text-lg mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wide">Video</span></button>
-        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('product', this)"><i class="fa-solid fa-motorcycle text-lg mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wide">Sản phẩm</span></button>
-        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('skill', this)"><i class="fa-solid fa-graduation-cap text-lg mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wide">Kỹ năng</span></button>
-        <button class="nav-mobile-btn flex-1 flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('results', this)"><i class="fa-solid fa-chart-pie text-lg mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wide">Kết quả</span></button>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex items-center px-2 py-2 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] mobile-nav-container">
+        <button class="nav-mobile-btn active flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('all', this)">
+            <i class="fa-solid fa-house text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Home</span>
+        </button>
+        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('video', this)">
+            <i class="fa-solid fa-circle-play text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Video</span>
+        </button>
+        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('product', this)">
+            <i class="fa-solid fa-motorcycle text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Sản phẩm</span>
+        </button>
+        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('skill', this)">
+            <i class="fa-solid fa-graduation-cap text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Kỹ năng</span>
+        </button>
+        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchLuckyWheelView()">
+            <div class="relative">
+                <i class="fa-solid fa-dharmachakra text-lg mb-0.5"></i>
+                <span id="spinBadgeMobile" class="hidden absolute -top-1 -right-2 bg-red-600 text-white text-[8px] px-1 rounded-full font-bold">0</span>
+            </div>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Vòng quay</span>
+        </button>
+        <button class="nav-mobile-btn flex flex-col items-center gap-1 text-gray-400 transition py-1" onclick="switchPage('results', this)">
+            <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase tracking-wide text-center">Kết quả</span>
+        </button>
     </nav>
   </div>
 
@@ -611,9 +669,38 @@
     }
 
     function updateTimer() { const diff = Math.floor((new Date() - quizStartTime) / 1000); document.getElementById('quizTimerDisplay').textContent = `${Math.floor(diff/60).toString().padStart(2,'0')}:${(diff%60).toString().padStart(2,'0')}`; }
-    function renderPagination() { const pag = document.getElementById('quizPagination'); pag.innerHTML = ''; currentQuestions.forEach((q, idx) => { const btn = document.createElement('button'); btn.className = `quiz-nav-btn ${idx === currentQIdx ? 'active' : ''} ${userAnswers[q.id] !== undefined ? 'answered' : ''}`; btn.textContent = idx + 1; btn.onclick = () => { currentQIdx = idx; renderPagination(); renderCurrentQuestion(); }; pag.appendChild(btn); }); }
+    
+    // --- RENDER PAGINATION (ĐÃ FIX: MÀU CAM KHI ĐÃ TRẢ LỜI) ---
+    function renderPagination() { 
+        const pag = document.getElementById('quizPagination'); 
+        pag.innerHTML = ''; 
+        currentQuestions.forEach((q, idx) => { 
+            const isAnswered = userAnswers[q.id] !== undefined;
+            const isActive = idx === currentQIdx;
+            const btn = document.createElement('button'); 
+            
+            // Logic class: Luôn có 'quiz-nav-btn'. Nếu active thì thêm 'active', nếu đã trả lời thì thêm 'answered'
+            let className = 'quiz-nav-btn';
+            if (isActive) className += ' active';
+            if (isAnswered) className += ' answered';
+            
+            btn.className = className;
+            btn.textContent = idx + 1; 
+            btn.onclick = () => { 
+                currentQIdx = idx; 
+                renderPagination(); 
+                renderCurrentQuestion(); 
+            }; 
+            pag.appendChild(btn); 
+        }); 
+    }
+    
     function renderCurrentQuestion() { const q = currentQuestions[currentQIdx]; let ops = ''; q.options.forEach((opt, idx) => { const chk = userAnswers[q.id] === idx ? 'checked' : ''; ops += `<label class="flex items-start gap-3 p-4 rounded-lg border border-gray-200 hover:bg-orange-50 hover:border-orange-200 cursor-pointer transition bg-white shadow-sm mb-2"><input type="radio" name="currentQ" value="${idx}" ${chk} class="mt-1 w-5 h-5 text-orange-600 focus:ring-orange-500 accent-orange-600" onchange="window.selectAnswer('${q.id}', ${idx})"><span class="text-sm md:text-base text-gray-700 font-medium">${opt}</span></label>`; }); document.getElementById('quizContent').innerHTML = `<div class="animate-fade-in"><h3 class="text-lg md:text-xl font-bold text-gray-800 mb-6 leading-relaxed"><span class="text-orange-600">Câu ${currentQIdx + 1}:</span> ${q.text}</h3><div class="flex flex-col">${ops}</div></div>`; }
-    window.selectAnswer = (qId, idx) => { userAnswers[qId] = idx; renderPagination(); };
+    
+    window.selectAnswer = (qId, idx) => { 
+        userAnswers[qId] = idx; 
+        renderPagination(); // Gọi lại để cập nhật màu cam
+    };
 
     document.getElementById('submitQuizBtn').onclick = async function() { 
         if(!currentUser) return alert("Vui lòng đăng nhập!"); 
@@ -736,6 +823,7 @@
         });
     }
 
+    // --- CẤU HÌNH QUÀ TẶNG MỚI (6 Ô) ---
     const prizes = [
         { label: "Voucher\n500K", icon: "fa-ticket", chance: 10, color: "#ffffff", text: "#ef4444" }, 
         { label: "Pin Sạc\nDự Phòng", icon: "fa-battery-full", chance: 25, color: "#ef4444", text: "#ffffff" },
@@ -785,17 +873,30 @@
         wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
     }
 
+    // --- HÀM CHUYỂN SANG VÒNG QUAY (Đã sửa) ---
     window.switchLuckyWheelView = () => {
+        // Ẩn sạch sẽ mọi thứ
         hideAllViews();
+        
+        // Chỉ hiện vòng quay
         document.getElementById('luckyWheelView').classList.remove('hidden');
+        
+        // Khởi tạo lại
         updateSpinUI();
         initWheelUI(); 
+        
+        // Ẩn filter bar mobile nếu có
         const filterBar = document.getElementById('mobileFilterBar');
         if(filterBar) filterBar.classList.add('hidden');
         
         document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
         const btn = document.querySelector('[data-category="luckywheel"]');
         if(btn) btn.classList.add('active');
+        
+        // Active nút mobile tương ứng (Mới thêm)
+        document.querySelectorAll('.nav-mobile-btn').forEach(b => b.classList.remove('active'));
+        const mobileBtn = document.querySelector('.nav-mobile-btn[onclick="switchLuckyWheelView()"]');
+        if(mobileBtn) mobileBtn.classList.add('active');
     };
 
     async function updateSpinUI() {
@@ -803,9 +904,19 @@
         const d = await getDoc(doc(db, "users", currentUser.uid));
         const spinsAvailable = d.data().spinsAvailable || 0;
         document.getElementById('availableSpinsText').textContent = spinsAvailable;
+        
+        // Cập nhật Badge trên Desktop
         const spinBadge = document.getElementById('spinBadge');
         spinBadge.textContent = spinsAvailable;
         spinBadge.classList.toggle('hidden', spinsAvailable === 0);
+        
+        // Cập nhật Badge trên Mobile (Mới thêm)
+        const spinBadgeMobile = document.getElementById('spinBadgeMobile');
+        if(spinBadgeMobile) {
+            spinBadgeMobile.textContent = spinsAvailable;
+            spinBadgeMobile.classList.toggle('hidden', spinsAvailable === 0);
+        }
+
         const btn = document.getElementById('spinBtn');
         if(spinsAvailable > 0 && !isSpinningWheel) btn.classList.add('btn-spin-active');
         else btn.classList.remove('btn-spin-active');
