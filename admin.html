@@ -197,7 +197,7 @@
                 </div>
             </header>
             <div class="p-4 md:p-6 max-w-7xl mx-auto w-full">
-                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col">
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 flex flex-col">
                     <div class="table-responsive">
                         <table class="w-full text-left whitespace-nowrap">
                             <thead class="bg-gray-50 text-xs uppercase text-gray-500">
@@ -1009,9 +1009,101 @@
     window.changeRole = async(id, currentRole) => { const newRole = prompt("Nhập vai trò (learner/sale/director/admin):", currentRole); if(newRole && ['learner','sale','director','admin'].includes(newRole)) { await updateDoc(doc(db,"users",id),{role: newRole}); loadUsers(true); } }
     window.deleteUser = async(id) => { if(confirm("CẢNH BÁO: XÓA VĨNH VIỄN?")) { try { await deleteDoc(doc(db, "users", id)); userCache = userCache.filter(u => u.id !== id); renderUserTable(); } catch(e) { alert("Lỗi: " + e.message); } } }
 
-    window.loadDashboard = async function(refresh = false) { const lessonId = document.getElementById('dashFilterLesson').value; const directorFilter = document.getElementById('dashFilterDirector').value; if(allShopsCache.length === 0 || refresh) { allShopsCache = []; const sSnap = await getDocs(collection(db, "shops")); sSnap.forEach(d => allShopsCache.push(d.data())); const directors = [...new Set(allShopsCache.map(s => s.director).filter(Boolean))]; const dSelect = document.getElementById('dashFilterDirector'); dSelect.innerHTML = '<option value="all">-- Tất cả GĐKV --</option>'; directors.forEach(d => { const opt=document.createElement('option'); opt.value=d; opt.textContent=d; dSelect.appendChild(opt); }); } let rQ = collection(db, "exam_results"); if(lessonId !== 'all') rQ = query(collection(db, "exam_results"), where("lessonId", "==", lessonId)); const rSnap = await getDocs(rQ); const results = []; rSnap.forEach(d => results.push(d.data())); let filteredShops = allShopsCache; if(directorFilter !== 'all') filteredShops = filteredShops.filter(s => s.director === directorFilter); const shopStats = {}, staffStats = {}, provinceStats = {}; filteredShops.forEach(s => { shopStats[s.dvn] = { name: s.name, passed: 0, totalScore: 0, attempts: 0, province: s.province }; if(!provinceStats[s.province]) provinceStats[s.province] = { passed: 0, total: 0 }; provinceStats[s.province].total++; }); let totalScoreSum = 0, totalAttempts = 0; results.forEach(r => { const dvn = r.dvn ? r.dvn.trim() : ''; if(shopStats[dvn]) { const score = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; if(!staffStats[r.uid]) staffStats[r.uid] = { name: r.name, scoreSum: 0, tests: 0, maxScore: 0, shopName: shopStats[dvn].name }; staffStats[r.uid].scoreSum += score; staffStats[r.uid].tests++; if(score > staffStats[r.uid].maxScore) staffStats[r.uid].maxScore = score; shopStats[dvn].totalScore += score; shopStats[dvn].attempts++; if(score === 100) shopStats[dvn].passed = 1; totalScoreSum += score; totalAttempts++; } }); const shopPassCount = Object.values(shopStats).filter(s => s.passed > 0).length; document.getElementById('kpiRate').textContent = (filteredShops.length > 0 ? Math.round((shopPassCount / filteredShops.length) * 100) : 0) + '%'; document.getElementById('kpiAvgScore').textContent = totalAttempts > 0 ? (totalScoreSum / totalAttempts).toFixed(1) : 0; document.getElementById('kpiShopPass').textContent = shopPassCount; document.getElementById('kpiShopTotal').textContent = `trên tổng số ${filteredShops.length} shop`; document.getElementById('kpiUserActive').textContent = Object.keys(staffStats).length; const topShops = Object.entries(shopStats).map(([dvn, s]) => ({ name: s.name, avg: s.attempts > 0 ? Math.round(s.totalScore/s.attempts) : 0 })).sort((a,b) => b.avg - a.avg).slice(0, 10); const topStaff = Object.values(staffStats).map(s => ({ name: s.name, score: s.maxScore, shop: s.shopName })).sort((a,b) => b.score - a.score).slice(0, 10); const provData = Object.entries(provinceStats).map(([prov, dat]) => { const shopsInProv = filteredShops.filter(s => s.province === prov); const passedInProv = shopsInProv.filter(s => shopStats[s.dvn] && shopStats[s.dvn].passed > 0).length; return { name: prov || 'Chưa XĐ', y: shopsInProv.length > 0 ? Math.round((passedInProv/shopsInProv.length)*100) : 0 }; }).sort((a,b) => b.y - a.y); renderChart('chartTopShops', 'column', 'Top 10 Cửa Hàng (Điểm TB)', topShops.map(s=>s.name), topShops.map(s=>s.avg), '#f97316'); renderChart('chartTopStaff', 'bar', 'Top 10 Nhân Viên (Điểm Cao)', topStaff.map(s=>`${s.name} (${s.shop})`), topStaff.map(s=>s.score), '#3b82f6'); renderChart('chartRegionMap', 'column', 'Tỷ Lệ Hoàn Thành (%)', provData.map(s=>s.name), provData.map(s=>s.y), '#10b981'); dashboardData = { filteredShops, shopStats }; }
+    // --- FIX: Normalize DVN in Dashboard ---
+    window.loadDashboard = async function(refresh = false) { 
+        const lessonId = document.getElementById('dashFilterLesson').value; 
+        const directorFilter = document.getElementById('dashFilterDirector').value; 
+        
+        if(allShopsCache.length === 0 || refresh) { 
+            allShopsCache = []; 
+            const sSnap = await getDocs(collection(db, "shops")); 
+            sSnap.forEach(d => allShopsCache.push(d.data())); 
+            
+            // Re-populate Director Filter
+            const directors = [...new Set(allShopsCache.map(s => s.director).filter(Boolean))]; 
+            const dSelect = document.getElementById('dashFilterDirector'); 
+            dSelect.innerHTML = '<option value="all">-- Tất cả GĐKV --</option>'; 
+            directors.forEach(d => { 
+                const opt=document.createElement('option'); opt.value=d; opt.textContent=d; 
+                dSelect.appendChild(opt); 
+            }); 
+        } 
+        
+        let rQ = collection(db, "exam_results"); 
+        if(lessonId !== 'all') rQ = query(collection(db, "exam_results"), where("lessonId", "==", lessonId)); 
+        const rSnap = await getDocs(rQ); 
+        const results = []; 
+        rSnap.forEach(d => results.push(d.data())); 
+        
+        let filteredShops = allShopsCache; 
+        if(directorFilter !== 'all') filteredShops = filteredShops.filter(s => s.director === directorFilter); 
+        
+        const shopStats = {}, staffStats = {}, provinceStats = {}; 
+        
+        // Init Stats with Normalized DVN Key
+        filteredShops.forEach(s => { 
+            const key = normalize(s.dvn); // Use normalize key
+            shopStats[key] = { name: s.name, passed: 0, totalScore: 0, attempts: 0, province: s.province }; 
+            
+            if(!provinceStats[s.province]) provinceStats[s.province] = { passed: 0, total: 0 }; 
+            provinceStats[s.province].total++; 
+        }); 
+        
+        let totalScoreSum = 0, totalAttempts = 0; 
+        
+        results.forEach(r => { 
+            const dvnKey = normalize(r.dvn); // Normalize Result DVN
+            
+            // Only count if shop exists in filtered list
+            if(shopStats[dvnKey]) { 
+                const score = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; 
+                
+                if(!staffStats[r.uid]) staffStats[r.uid] = { name: r.name, scoreSum: 0, tests: 0, maxScore: 0, shopName: shopStats[dvnKey].name }; 
+                staffStats[r.uid].scoreSum += score; 
+                staffStats[r.uid].tests++; 
+                if(score > staffStats[r.uid].maxScore) staffStats[r.uid].maxScore = score; 
+                
+                shopStats[dvnKey].totalScore += score; 
+                shopStats[dvnKey].attempts++; 
+                if(score === 100) shopStats[dvnKey].passed = 1; 
+                
+                totalScoreSum += score; 
+                totalAttempts++; 
+            } 
+        }); 
+        
+        const shopPassCount = Object.values(shopStats).filter(s => s.passed > 0).length; 
+        document.getElementById('kpiRate').textContent = (filteredShops.length > 0 ? Math.round((shopPassCount / filteredShops.length) * 100) : 0) + '%'; 
+        document.getElementById('kpiAvgScore').textContent = totalAttempts > 0 ? (totalScoreSum / totalAttempts).toFixed(1) : 0; 
+        document.getElementById('kpiShopPass').textContent = shopPassCount; 
+        document.getElementById('kpiShopTotal').textContent = `trên tổng số ${filteredShops.length} shop`; 
+        document.getElementById('kpiUserActive').textContent = Object.keys(staffStats).length; 
+        
+        const topShops = Object.entries(shopStats)
+            .map(([dvn, s]) => ({ name: s.name, avg: s.attempts > 0 ? Math.round(s.totalScore/s.attempts) : 0 }))
+            .sort((a,b) => b.avg - a.avg).slice(0, 10); 
+            
+        const topStaff = Object.values(staffStats)
+            .map(s => ({ name: s.name, score: s.maxScore, shop: s.shopName }))
+            .sort((a,b) => b.score - a.score).slice(0, 10); 
+            
+        const provData = Object.entries(provinceStats).map(([prov, dat]) => { 
+            const shopsInProv = filteredShops.filter(s => s.province === prov); 
+            // Re-calc pass for province
+            const passedInProv = shopsInProv.filter(s => shopStats[normalize(s.dvn)] && shopStats[normalize(s.dvn)].passed > 0).length; 
+            return { name: prov || 'Chưa XĐ', y: shopsInProv.length > 0 ? Math.round((passedInProv/shopsInProv.length)*100) : 0 }; 
+        }).sort((a,b) => b.y - a.y); 
+        
+        renderChart('chartTopShops', 'column', 'Top 10 Cửa Hàng (Điểm TB)', topShops.map(s=>s.name), topShops.map(s=>s.avg), '#f97316'); 
+        renderChart('chartTopStaff', 'bar', 'Top 10 Nhân Viên (Điểm Cao)', topStaff.map(s=>`${s.name} (${s.shop})`), topStaff.map(s=>s.score), '#3b82f6'); 
+        renderChart('chartRegionMap', 'column', 'Tỷ Lệ Hoàn Thành (%)', provData.map(s=>s.name), provData.map(s=>s.y), '#10b981'); 
+        
+        dashboardData = { filteredShops, shopStats }; 
+    }
+    
     function renderChart(id, type, title, cats, data, color) { Highcharts.chart(id, { chart: { type: type }, title: { text: null }, xAxis: { categories: cats }, yAxis: { title: { text: null } }, series: [{ name: title, data: data, color: color, showInLegend: false }], credits: { enabled: false } }); }
-    window.exportKPIDashboard = function() { if(!dashboardData.filteredShops) return alert("Vui lòng tải dữ liệu trước!"); const rows = dashboardData.filteredShops.map(s => { const stat = dashboardData.shopStats[s.dvn] || { passed: 0, attempts: 0 }; return { "Mã DVN": s.dvn, "Tên Cửa Hàng": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Số Lượt Thi": stat.attempts, "Trạng Thái": stat.passed > 0 ? "ĐẠT" : "CHƯA ĐẠT" }; }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KPI_Report"); XLSX.writeFile(wb, `YADEA_KPI_${new Date().toISOString().slice(0,10)}.xlsx`); }
+    window.exportKPIDashboard = function() { if(!dashboardData.filteredShops) return alert("Vui lòng tải dữ liệu trước!"); const rows = dashboardData.filteredShops.map(s => { const stat = dashboardData.shopStats[normalize(s.dvn)] || { passed: 0, attempts: 0 }; return { "Mã DVN": s.dvn, "Tên Cửa Hàng": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Số Lượt Thi": stat.attempts, "Trạng Thái": stat.passed > 0 ? "ĐẠT" : "CHƯA ĐẠT" }; }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KPI_Report"); XLSX.writeFile(wb, `YADEA_KPI_${new Date().toISOString().slice(0,10)}.xlsx`); }
+    
     let curL = null, loadedQuestions = [], editingQId = null; const els = {t:'inpTitle',c:'inpCategory',d:'inpDuration',u:'inpContentUrl',i:'inpImage', de:'inpDesc', minT: 'inpMinTime'};
     
     // --- MODIFIED: LDLESSONS WITH SORTING ---
@@ -1182,47 +1274,21 @@
     window.deleteResult = async(id) => { if(confirm("Xóa kết quả này?")) { await deleteDoc(doc(db, "exam_results", id)); loadReports(); } }
     window.exportToExcel = function() { if (currentReportData.length < 200 && !confirm("Bạn đang xuất dữ liệu giới hạn (200 dòng). Bạn có muốn tiếp tục không? (Nên bấm 'Tải tất cả' trước)")) return; const excelData = currentReportData.map((r, index) => { let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let m = Math.floor((r.duration||0)/60); let s = (r.duration||0)%60; return { "Hạng": index + 1, "Tên Nhân Viên": r.name, "Mã DVN": r.dvn, "Email": r.email, "Bài Học": r.lessonTitle, "Điểm Số (100)": displayScore, "Trạng Thái": displayScore === 100 ? "PASS" : "FAIL", "Thời gian làm": `${m} phút ${s} giây`, "Ngày thi": r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : '' }; }); const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KetQuaDaoTao"); XLSX.writeFile(wb, `YADEA_Report_${new Date().toISOString().slice(0,10)}.xlsx`); }
 
-    // --- 1. LOGIC QUẢN LÝ QUÀ TẶNG (CẬP NHẬT FILTER) ---
+    // --- 1. LOGIC QUẢN LÝ QUÀ TẶNG (CẬP NHẬT) ---
     window.loadGifts = async () => {
         const tb = document.getElementById('giftTableBody');
         tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
-        
-        // Fetch data
         const snap = await getDocs(query(collection(db, "spin_history"), orderBy("timestamp", "desc"), limit(200)));
-        giftHistoryCache = []; 
-        
-        if(snap.empty) { 
-            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Chưa có ai trúng thưởng.</td></tr>'; 
-            return; 
-        }
+        tb.innerHTML = '';
+        giftHistoryCache = []; // Reset cache để dùng cho Export
+
+        if(snap.empty) { tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Chưa có ai trúng thưởng.</td></tr>'; return; }
         
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            giftHistoryCache.push(data);
-        });
+            giftHistoryCache.push(data); // Lưu vào cache
 
-        renderGiftTable();
-    }
-
-    window.renderGiftTable = () => {
-        const tb = document.getElementById('giftTableBody');
-        const filter = document.getElementById('filterGiftStatus').value;
-        tb.innerHTML = '';
-
-        let displayList = giftHistoryCache;
-        
-        // Filter logic
-        if (filter !== 'all') {
-            displayList = displayList.filter(g => (g.status || 'pending') === filter);
-        }
-
-        if(displayList.length === 0) {
-            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Không tìm thấy dữ liệu phù hợp.</td></tr>';
-            return;
-        }
-
-        displayList.forEach(data => {
             const date = data.timestamp ? new Date(data.timestamp.seconds*1000).toLocaleString('vi-VN') : '';
             const isSent = data.status === 'sent';
             const statusHtml = isSent 
@@ -1230,8 +1296,9 @@
                 : '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Chờ trao</span>';
             const btnHtml = isSent 
                 ? '<span class="text-gray-400 text-xs italic">Hoàn tất</span>'
-                : `<button onclick="markGiftSent('${data.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">Xác nhận trao</button>`;
+                : `<button onclick="markGiftSent('${d.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">Xác nhận trao</button>`;
             
+            // Thông tin người nhận
             let shipInfo = '<span class="text-gray-400 text-xs">Chưa cập nhật</span>';
             if(data.shippingName || data.shippingPhone) {
                 shipInfo = `<div class="text-xs">
