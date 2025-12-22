@@ -380,8 +380,7 @@
 
                 <div id="chatAreaCol" class="w-full flex-1 flex flex-col h-full bg-white absolute md:relative translate-x-full md:translate-x-0 transition-transform duration-300 z-20">
                     
-                    <div class="h-14 border-b flex items-center px-4 bg-white shadow-sm flex-shrink-0 justify-between z-10">
-                        <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="h-14 border-b flex items-center px-4 bg-white shadow-sm flex-shrink-0 justify-between z-10 z-50"> <div class="flex items-center gap-3 overflow-hidden">
                             <button onclick="closeChatMobile()" class="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-orange-100 hover:text-orange-600 transition">
                                 <i class="fa-solid fa-arrow-left"></i>
                             </button>
@@ -1055,7 +1054,7 @@
             const dvnKey = normalize(r.dvn); // Normalize Result DVN
             
             // Only count if shop exists in filtered list
-            if(shopStats[dvnKey]) { 
+            if(dvnKey && shopStats[dvnKey]) { 
                 const score = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; 
                 
                 if(!staffStats[r.uid]) staffStats[r.uid] = { name: r.name, scoreSum: 0, tests: 0, maxScore: 0, shopName: shopStats[dvnKey].name }; 
@@ -1103,7 +1102,6 @@
     
     function renderChart(id, type, title, cats, data, color) { Highcharts.chart(id, { chart: { type: type }, title: { text: null }, xAxis: { categories: cats }, yAxis: { title: { text: null } }, series: [{ name: title, data: data, color: color, showInLegend: false }], credits: { enabled: false } }); }
     window.exportKPIDashboard = function() { if(!dashboardData.filteredShops) return alert("Vui lòng tải dữ liệu trước!"); const rows = dashboardData.filteredShops.map(s => { const stat = dashboardData.shopStats[normalize(s.dvn)] || { passed: 0, attempts: 0 }; return { "Mã DVN": s.dvn, "Tên Cửa Hàng": s.name, "Giám Đốc KV": s.director, "Sale Phụ Trách": s.saleRep, "Tỉnh/Thành": s.province, "Số Lượt Thi": stat.attempts, "Trạng Thái": stat.passed > 0 ? "ĐẠT" : "CHƯA ĐẠT" }; }); const ws = XLSX.utils.json_to_sheet(rows); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KPI_Report"); XLSX.writeFile(wb, `YADEA_KPI_${new Date().toISOString().slice(0,10)}.xlsx`); }
-    
     let curL = null, loadedQuestions = [], editingQId = null; const els = {t:'inpTitle',c:'inpCategory',d:'inpDuration',u:'inpContentUrl',i:'inpImage', de:'inpDesc', minT: 'inpMinTime'};
     
     // --- MODIFIED: LDLESSONS WITH SORTING ---
@@ -1274,21 +1272,50 @@
     window.deleteResult = async(id) => { if(confirm("Xóa kết quả này?")) { await deleteDoc(doc(db, "exam_results", id)); loadReports(); } }
     window.exportToExcel = function() { if (currentReportData.length < 200 && !confirm("Bạn đang xuất dữ liệu giới hạn (200 dòng). Bạn có muốn tiếp tục không? (Nên bấm 'Tải tất cả' trước)")) return; const excelData = currentReportData.map((r, index) => { let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let m = Math.floor((r.duration||0)/60); let s = (r.duration||0)%60; return { "Hạng": index + 1, "Tên Nhân Viên": r.name, "Mã DVN": r.dvn, "Email": r.email, "Bài Học": r.lessonTitle, "Điểm Số (100)": displayScore, "Trạng Thái": displayScore === 100 ? "PASS" : "FAIL", "Thời gian làm": `${m} phút ${s} giây`, "Ngày thi": r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : '' }; }); const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KetQuaDaoTao"); XLSX.writeFile(wb, `YADEA_Report_${new Date().toISOString().slice(0,10)}.xlsx`); }
 
-    // --- 1. LOGIC QUẢN LÝ QUÀ TẶNG (CẬP NHẬT) ---
+    // --- 1. LOGIC QUẢN LÝ QUÀ TẶNG (CẬP NHẬT - FIX LỌC & EXPORT) ---
     window.loadGifts = async () => {
         const tb = document.getElementById('giftTableBody');
         tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
-        const snap = await getDocs(query(collection(db, "spin_history"), orderBy("timestamp", "desc"), limit(200)));
-        tb.innerHTML = '';
-        giftHistoryCache = []; // Reset cache để dùng cho Export
-
-        if(snap.empty) { tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Chưa có ai trúng thưởng.</td></tr>'; return; }
+        
+        // Fetch data sorted by time
+        const snap = await getDocs(query(collection(db, "spin_history"), orderBy("timestamp", "desc"), limit(500)));
+        giftHistoryCache = []; 
+        
+        if(snap.empty) { 
+            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Chưa có ai trúng thưởng.</td></tr>'; 
+            return; 
+        }
         
         snap.forEach(d => {
             const data = d.data();
             data.id = d.id;
-            giftHistoryCache.push(data); // Lưu vào cache
+            giftHistoryCache.push(data);
+        });
 
+        renderGiftTable();
+    }
+
+    window.renderGiftTable = () => {
+        const tb = document.getElementById('giftTableBody');
+        const filter = document.getElementById('filterGiftStatus').value;
+        tb.innerHTML = '';
+
+        let displayList = giftHistoryCache;
+        
+        // Filter logic: Default status is 'pending' if undefined
+        if (filter !== 'all') {
+            displayList = displayList.filter(g => {
+                const status = g.status || 'pending'; // Fix logic lỗi lọc
+                return status === filter;
+            });
+        }
+
+        if(displayList.length === 0) {
+            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Không tìm thấy dữ liệu phù hợp.</td></tr>';
+            return;
+        }
+
+        displayList.forEach(data => {
             const date = data.timestamp ? new Date(data.timestamp.seconds*1000).toLocaleString('vi-VN') : '';
             const isSent = data.status === 'sent';
             const statusHtml = isSent 
@@ -1296,9 +1323,8 @@
                 : '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Chờ trao</span>';
             const btnHtml = isSent 
                 ? '<span class="text-gray-400 text-xs italic">Hoàn tất</span>'
-                : `<button onclick="markGiftSent('${d.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">Xác nhận trao</button>`;
+                : `<button onclick="markGiftSent('${data.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">Xác nhận trao</button>`;
             
-            // Thông tin người nhận
             let shipInfo = '<span class="text-gray-400 text-xs">Chưa cập nhật</span>';
             if(data.shippingName || data.shippingPhone) {
                 shipInfo = `<div class="text-xs">
@@ -1323,7 +1349,10 @@
     window.markGiftSent = async (id) => {
         if(confirm("Xác nhận đã trao quà cho user này?")) {
             await updateDoc(doc(db, "spin_history", id), { status: 'sent' });
-            loadGifts();
+            // Update local cache manually to avoid re-fetch
+            const item = giftHistoryCache.find(g => g.id === id);
+            if(item) item.status = 'sent';
+            renderGiftTable();
         }
     }
 
@@ -1331,7 +1360,14 @@
     window.exportGiftHistory = () => {
         if(giftHistoryCache.length === 0) return alert("Không có dữ liệu để xuất!");
         
-        const data = giftHistoryCache.map(g => {
+        // Filter before export to match view
+        const filter = document.getElementById('filterGiftStatus').value;
+        let exportList = giftHistoryCache;
+        if (filter !== 'all') {
+            exportList = exportList.filter(g => (g.status || 'pending') === filter);
+        }
+
+        const data = exportList.map(g => {
             return {
                 "Thời gian": g.timestamp ? new Date(g.timestamp.seconds*1000).toLocaleString('vi-VN') : '',
                 "Tên Nhân Viên (TK)": g.name,
@@ -1340,7 +1376,7 @@
                 "Người Nhận": g.shippingName || '',
                 "Số Điện Thoại": g.shippingPhone || '',
                 "Địa Chỉ Giao Hàng": g.shippingAddress || '',
-                "Trạng Thái": g.status === 'sent' ? "Đã trao" : "Chờ trao"
+                "Trạng Thái": (g.status === 'sent') ? "Đã trao" : "Chờ trao"
             };
         });
 
