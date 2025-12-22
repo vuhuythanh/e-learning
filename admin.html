@@ -80,6 +80,10 @@
           <button onclick="switchTab('users')" id="tabUsers" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-users w-5"></i> Quản lý User <span id="pendingCount" class="hidden ml-auto bg-red-500 text-white text-[10px] px-1.5 rounded-full">0</span></button>
           <button onclick="switchTab('progress')" id="tabProgress" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-bars-progress w-5"></i> Tiến độ đào tạo</button>
           <button onclick="switchTab('reports')" id="tabReports" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-trophy w-5"></i> Bảng xếp hạng</button>
+          
+          <button onclick="switchTab('gifts')" id="tabGifts" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-gift w-5"></i> Quản lý Quà tặng</button>
+          <button onclick="switchTab('settings')" id="tabSettings" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-gears w-5"></i> Cấu hình Hệ thống</button>
+
           <div class="pt-4 mt-4 border-t border-gray-700"><p class="px-3 text-[10px] uppercase font-bold text-gray-500 mb-2">Enterprise Data</p><button onclick="switchTab('shops')" id="tabShops" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-store w-5"></i> Dữ liệu Đại lý</button></div>
           <div class="pt-4 mt-4 border-t border-gray-700"><button onclick="switchTab('chat')" id="tabChat" class="sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition"><i class="fa-solid fa-comments w-5"></i> Hỗ trợ / Chat <span id="chatUnreadCount" class="hidden bg-red-600 text-white text-[10px] px-1.5 rounded-full ml-auto">0</span></button></div>
         </nav>
@@ -164,7 +168,17 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2"><input id="qOp0" placeholder="Đáp án A" class="border p-2 text-sm rounded"><input id="qOp1" placeholder="Đáp án B" class="border p-2 text-sm rounded"><input id="qOp2" placeholder="Đáp án C" class="border p-2 text-sm rounded"><input id="qOp3" placeholder="Đáp án D" class="border p-2 text-sm rounded"></div>
                             <div class="flex flex-col md:flex-row justify-between items-center gap-3"><div class="flex items-center gap-2"><span class="text-xs font-bold">Đúng:</span><select id="qCorrect" class="border p-1 text-sm rounded font-bold text-orange-600"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div><button id="btnAddQuestion" class="bg-gray-800 text-white px-4 py-1.5 rounded text-xs font-bold hover:bg-black transition w-full md:w-auto">Thêm câu hỏi</button></div>
                         </div>
-                        <div id="questionList" class="space-y-2"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-dashed flex items-center justify-between">
+                            <div class="text-xs text-gray-500 font-bold">Hoặc Import từ Excel:</div>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="inpQuizExcel" accept=".xlsx, .xls" class="hidden" onchange="importQuizExcel(this)">
+                                <button onclick="document.getElementById('inpQuizExcel').click()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-xs font-bold shadow-sm"><i class="fa-solid fa-file-excel"></i> Chọn File Excel</button>
+                                <a href="#" onclick="downloadQuizTemplate()" class="text-xs text-blue-500 hover:underline">Tải file mẫu</a>
+                            </div>
+                        </div>
+
+                        <div id="questionList" class="space-y-2 mt-4"></div>
                     </div>
                 </div>
             </div>
@@ -248,6 +262,62 @@
         <div id="viewReports" class="hidden flex-1 flex flex-col h-full bg-gray-50">
             <header class="h-auto md:h-16 bg-white border-b flex flex-col md:flex-row justify-between items-start md:items-center px-4 md:px-6 py-3 gap-3"><h2 class="text-lg md:text-xl font-bold">Bảng xếp hạng</h2><div class="flex gap-3 w-full md:w-auto"><select id="reportFilterLesson" onchange="loadReports()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white flex-1 md:w-auto"><option value="all">-- Tất cả bài học --</option></select><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất</button><button onclick="loadReports(true)" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100">Tải tất</button></div></header>
             <div class="p-4 md:p-6 max-w-7xl mx-auto w-full h-full flex flex-col"><div class="grid grid-cols-3 gap-2 md:gap-4 mb-4"><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Tổng lượt</span><span id="statTotal" class="text-lg md:text-xl font-bold text-gray-800">0</span></div><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Đậu (100đ)</span><span id="statPass" class="text-lg md:text-xl font-bold text-green-600">0</span></div><div class="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center"><span class="text-[10px] md:text-xs text-gray-500 uppercase">Rớt (<100)</span><span id="statFail" class="text-lg md:text-xl font-bold text-red-600">0</span></div></div><div class="bg-white rounded-2xl shadow-sm border flex-1 overflow-hidden flex flex-col"><div class="table-responsive"><table class="w-full text-left whitespace-nowrap" id="reportTable"><thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0"><tr><th class="p-4 w-16">Hạng</th><th class="p-4">Nhân viên</th><th class="p-4">Bài học</th><th class="p-4 text-center">Điểm (100)</th><th class="p-4 text-center">Trạng thái</th><th class="p-4">Thời gian</th><th class="p-4">Ngày thi</th><th class="p-4 text-right">Xóa</th></tr></thead><tbody id="reportTableBody" class="text-sm divide-y"></tbody></table></div></div></div>
+        </div>
+        
+        <div id="viewGifts" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex justify-between items-center px-6 py-3">
+                <h2 class="text-xl font-bold">Lịch sử Trúng thưởng</h2>
+                <div class="flex gap-2">
+                    <select id="filterGiftStatus" onchange="renderGiftTable()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none bg-white font-medium text-gray-600">
+                        <option value="all">-- Tất cả --</option>
+                        <option value="pending" class="text-yellow-600 font-bold">Chờ trao</option>
+                        <option value="sent" class="text-green-600 font-bold">Đã trao</option>
+                    </select>
+                    <button onclick="exportGiftHistory()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-sm"><i class="fa-solid fa-file-excel"></i> Xuất Excel</button>
+                    <button onclick="loadGifts()" class="text-gray-500 hover:text-orange-500 px-2"><i class="fa-solid fa-rotate"></i></button>
+                </div>
+            </header>
+            <div class="p-6 max-w-7xl mx-auto w-full flex flex-col h-full">
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden flex-1 flex flex-col">
+                    <div class="table-responsive">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead class="bg-gray-50 text-xs uppercase text-gray-500 sticky top-0">
+                                <tr>
+                                    <th class="p-4">Thời gian</th>
+                                    <th class="p-4">Nhân viên</th>
+                                    <th class="p-4">Mã DVN</th>
+                                    <th class="p-4">Phần quà</th>
+                                    <th class="p-4">Thông tin nhận quà</th>
+                                    <th class="p-4 text-center">Trạng thái</th>
+                                    <th class="p-4 text-right">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="giftTableBody" class="text-sm divide-y text-gray-700"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewSettings" class="hidden flex-1 flex flex-col h-full bg-gray-50">
+            <header class="h-16 bg-white border-b flex items-center px-6 py-3">
+                <h2 class="text-xl font-bold">Cấu hình Hệ thống</h2>
+            </header>
+            <div class="p-6 max-w-2xl mx-auto w-full">
+                <div class="bg-white rounded-2xl shadow-sm border p-6">
+                    <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Thông báo toàn hệ thống (Marquee)</h3>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold text-gray-600 mb-1">Nội dung thông báo:</label>
+                        <input id="sysNotifText" class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-500" placeholder="Ví dụ: Hệ thống bảo trì lúc 12h...">
+                        <p class="text-xs text-gray-400 mt-1">Nội dung này sẽ chạy chữ trên màn hình Home của học viên.</p>
+                    </div>
+                    <div class="mb-6 flex items-center gap-3">
+                        <label class="text-sm font-bold text-gray-600">Trạng thái:</label>
+                        <select id="sysNotifStatus" class="border rounded px-2 py-1 text-sm"><option value="on">Bật</option><option value="off">Tắt</option></select>
+                    </div>
+                    <button onclick="saveSystemSettings()" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-orange-700 transition">Lưu Cấu Hình</button>
+                </div>
+            </div>
         </div>
 
         <div id="viewShops" class="hidden flex-1 flex flex-col h-full bg-gray-50">
@@ -351,6 +421,27 @@
 
       </main>
   </div>
+  
+  <div id="editPointModal" class="hidden fixed inset-0 bg-gray-900/50 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-fade-in">
+          <h3 class="font-bold text-lg text-gray-800 mb-1">Điều chỉnh tài khoản</h3>
+          <p id="editPointName" class="text-sm text-gray-500 mb-4">User: ...</p>
+          <div class="space-y-3">
+              <div>
+                  <label class="text-xs font-bold text-gray-600">Tổng điểm tích lũy</label>
+                  <input id="editInpPoints" type="number" class="w-full border rounded px-3 py-2 text-sm outline-none font-bold text-orange-600">
+              </div>
+              <div>
+                  <label class="text-xs font-bold text-gray-600">Lượt quay khả dụng</label>
+                  <input id="editInpSpins" type="number" class="w-full border rounded px-3 py-2 text-sm outline-none font-bold text-blue-600">
+              </div>
+          </div>
+          <div class="flex justify-end gap-2 mt-6">
+              <button onclick="document.getElementById('editPointModal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold hover:bg-gray-200">Hủy</button>
+              <button onclick="saveUserPoints()" class="px-4 py-2 rounded-lg bg-orange-600 text-white text-xs font-bold hover:bg-orange-700 shadow-lg">Lưu thay đổi</button>
+          </div>
+      </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
@@ -365,6 +456,7 @@
     let currentChatUid = null;
     let shopNameMap = {}; 
     let cachedAdminLessons = [];
+    let giftHistoryCache = [];
     
     // --- MOBILE SIDEBAR LOGIC ---
     window.toggleSidebar = () => {
@@ -495,8 +587,15 @@
              currentChatUid = null;
         }
 
-        ['viewLessons','viewUsers','viewReports','viewShops','viewDashboard','viewChat','viewProgress'].forEach(x=>document.getElementById(x).classList.add('hidden'));
-        ['tabLessons','tabUsers','tabReports','tabShops','tabDashboard','tabChat','tabProgress'].forEach(x=>document.getElementById(x).classList.remove('active'));
+        ['viewLessons','viewUsers','viewReports','viewShops','viewDashboard','viewChat','viewProgress','viewGifts','viewSettings'].forEach(x=> {
+            const el = document.getElementById(x);
+            if(el) el.classList.add('hidden');
+        });
+        ['tabLessons','tabUsers','tabReports','tabShops','tabDashboard','tabChat','tabProgress','tabGifts','tabSettings'].forEach(x=> {
+            const el = document.getElementById(x);
+            if(el) el.classList.remove('active');
+        });
+
         document.getElementById('view'+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove('hidden');
         document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.add('active');
         
@@ -508,6 +607,8 @@
             if(allShopsCache.length===0) fetchShopData().then(loadShops); else loadShops();
         }
         if(t==='dashboard') { loadFilterOptions('dashFilterLesson'); loadDashboard(); }
+        if(t==='gifts') loadGifts();
+        if(t==='settings') loadSettings();
     }
     async function loadFilterOptions(elementId) { const select = document.getElementById(elementId); if (select.options.length > 1) return; const snap = await getDocs(collection(db, "lessons")); snap.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.data().title; select.appendChild(opt); }); }
 
@@ -686,17 +787,43 @@
         }
     }
 
+    // --- MODIFIED: Load Users with Sort by CreatedAt ---
     window.loadUsers = async function(loadAll = false) { 
         try {
-            const tb = document.getElementById('userTableBody'); tb.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+            const tb = document.getElementById('userTableBody'); 
+            tb.innerHTML='<tr><td colspan="7" class="p-4 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu mới nhất...</td></tr>';
+            
             await fetchShopData();
+            
             if(userCache.length === 0 || loadAll) {
-                let q = collection(db, "users"); if(!loadAll) q = query(collection(db, "users"), limit(100)); 
-                const snap = await getDocs(q); userCache = []; snap.forEach(d=>userCache.push({id:d.id,...d.data()}));
-                userCache.sort((a,b)=>{ const order = { 'pending': 1, 'active': 2, 'banned': 3 }; return (order[a.status||'active'] || 4) - (order[b.status||'active'] || 4); });
+                let q;
+                // Nếu không load all thì lấy 100 người mới nhất
+                if(!loadAll) {
+                    q = query(collection(db, "users"), orderBy("createdAt", "desc"), limit(100)); 
+                } else {
+                    q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+                }
+                
+                const snap = await getDocs(q); 
+                userCache = []; 
+                snap.forEach(d => userCache.push({id:d.id,...d.data()}));
+                
+                // Sắp xếp ưu tiên trạng thái 'pending' lên đầu để dễ duyệt
+                userCache.sort((a,b)=>{ 
+                    const order = { 'pending': 1, 'active': 2, 'banned': 3 }; 
+                    return (order[a.status||'active'] || 4) - (order[b.status||'active'] || 4); 
+                });
             }
             renderUserTable(); 
-        } catch(e) { console.error(e); alert("Lỗi tải User: " + e.message); }
+        } catch(e) { 
+            console.error(e); 
+            // Bắt lỗi thiếu Index của Firebase
+            if(e.message.includes("requires an index")) {
+                alert("Hệ thống cần tạo Index trên Firebase. Vui lòng mở Console (F12) bấm vào link lỗi để tạo.");
+            } else {
+                alert("Lỗi tải User: " + e.message); 
+            }
+        }
     }
     
     window.renderUserTable = function() {
@@ -738,7 +865,17 @@
             } else {
                 let starHtml = ''; for(let i=0; i<stars; i++) starHtml += '<i class="fa-solid fa-star text-yellow-400 text-[10px]"></i>'; if(stars === 0) starHtml = '<span class="text-gray-300 text-[10px]"><i class="fa-regular fa-star"></i></span>';
                 let progressHtml = nextTarget ? `<div class="text-[10px] text-gray-400 mt-1">Cần <b>${nextTarget - pts}</b>đ lên sao</div>` : `<div class="text-[10px] text-green-600 font-bold mt-1">MAX LEVEL</div>`;
-                dynamicColumnHtml = `<div class="flex items-center gap-1">${starHtml}</div><div class="text-xs font-bold text-gray-700">${pts} pts</div>${progressHtml}`;
+                
+                const editBtn = `<button onclick="openEditUserModal('${x.id}', '${x.name}', ${pts}, ${x.spinsAvailable||0})" class="ml-2 text-gray-400 hover:text-orange-600 transition bg-white border border-gray-200 rounded px-1.5 shadow-sm" title="Sửa điểm/lượt quay"><i class="fa-solid fa-pen"></i></button>`;
+
+                dynamicColumnHtml = `<div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-1">${starHtml}</div>
+                        <div class="text-xs font-bold text-gray-700 mt-0.5">${pts} pts <span class="text-gray-300">|</span> <span class="text-blue-600">${x.spinsAvailable||0} spins</span></div>
+                        ${progressHtml}
+                    </div>
+                    ${editBtn}
+                </div>`;
             }
 
             if(x.status === 'pending') { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-orange-100 text-orange-700">Chờ duyệt</span>'; actionBtns = `<button onclick="updateStatus('${x.id}','active')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 shadow">Duyệt</button>`; } else if (x.status === 'active') { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">Hoạt động</span>'; actionBtns = `<button onclick="resetPwd('${x.email}')" class="text-yellow-600 hover:text-yellow-800 text-xs font-bold mr-2 border border-yellow-200 px-1.5 py-0.5 rounded bg-yellow-50" title="Gửi mail đổi MK"><i class="fa-solid fa-key"></i> Pass</button><button onclick="changeRole('${x.id}','${x.role||'learner'}')" class="text-purple-600 hover:text-purple-800 text-xs font-bold mr-2">Role</button><button onclick="updateStatus('${x.id}','banned')" class="text-red-500 hover:text-red-700 text-xs font-bold">Khóa</button>`; } else { sttBadge = '<span class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">Đã khóa</span>'; actionBtns = `<button onclick="updateStatus('${x.id}','active')" class="bg-gray-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-700">Mở</button>`; } 
@@ -1044,6 +1181,230 @@
     window.loadReports = async function(loadAll = false) { const tb = document.getElementById('reportTableBody'); const filterId = document.getElementById('reportFilterLesson').value; tb.innerHTML='<tr><td colspan="8" class="p-4 text-center">Đang tải dữ liệu...</td></tr>'; let q = collection(db, "exam_results"); if(!loadAll && filterId === 'all') q = query(collection(db, "exam_results"), orderBy("timestamp", "desc"), limit(200)); const snap = await getDocs(q); let res = []; snap.forEach(d => res.push({id: d.id, ...d.data()})); if (filterId !== 'all') { res = res.filter(r => r.lessonId === filterId); } res.sort((a,b) => { let scoreA = a.total < 100 ? (a.score/a.total)*100 : a.score; let scoreB = b.total < 100 ? (b.score/b.total)*100 : b.score; if(scoreB !== scoreA) return scoreB - scoreA; return (a.duration||9999) - (b.duration||9999); }); currentReportData = res; document.getElementById('statTotal').textContent = res.length; let passCnt = 0; tb.innerHTML = ''; if(res.length === 0) { tb.innerHTML='<tr><td colspan="8" class="p-8 text-center text-gray-400">Chưa có dữ liệu.</td></tr>'; return; } res.slice(0, 500).forEach((r,i) => { let m = Math.floor((r.duration||0)/60), s = (r.duration||0)%60; let icon = (i===0?'🥇':(i===1?'🥈':(i===2?'🥉':i+1))); let date = r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : ''; let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let isPass = displayScore === 100; if(isPass) passCnt++; let statusHtml = isPass ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold border border-green-200">PASS</span>' : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold border border-red-200">FAIL</span>'; tb.innerHTML += `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="p-4 text-lg font-bold text-gray-500 text-center">${icon}</td><td class="p-4"><p class="font-bold text-gray-800">${r.name}</p><p class="text-xs text-gray-400">${r.dvn}</p></td><td class="p-4 text-gray-600 max-w-xs truncate" title="${r.lessonTitle}">${r.lessonTitle}</td><td class="p-4 font-bold text-center text-gray-800">${displayScore}</td><td class="p-4 text-center">${statusHtml}</td><td class="p-4 font-mono text-xs text-gray-500">${m}p ${s}s</td><td class="p-4 text-xs text-gray-400">${date}</td><td class="p-4 text-right"><button onclick="deleteResult('${r.id}')" class="text-gray-300 hover:text-red-500 transition px-2 py-1"><i class="fa-solid fa-trash"></i></button></td></tr>`; }); document.getElementById('statPass').textContent = passCnt; document.getElementById('statFail').textContent = res.length - passCnt; }
     window.deleteResult = async(id) => { if(confirm("Xóa kết quả này?")) { await deleteDoc(doc(db, "exam_results", id)); loadReports(); } }
     window.exportToExcel = function() { if (currentReportData.length < 200 && !confirm("Bạn đang xuất dữ liệu giới hạn (200 dòng). Bạn có muốn tiếp tục không? (Nên bấm 'Tải tất cả' trước)")) return; const excelData = currentReportData.map((r, index) => { let displayScore = r.total < 100 ? Math.round((r.score/r.total)*100) : r.score; let m = Math.floor((r.duration||0)/60); let s = (r.duration||0)%60; return { "Hạng": index + 1, "Tên Nhân Viên": r.name, "Mã DVN": r.dvn, "Email": r.email, "Bài Học": r.lessonTitle, "Điểm Số (100)": displayScore, "Trạng Thái": displayScore === 100 ? "PASS" : "FAIL", "Thời gian làm": `${m} phút ${s} giây`, "Ngày thi": r.timestamp ? new Date(r.timestamp.seconds*1000).toLocaleDateString('vi-VN') : '' }; }); const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "KetQuaDaoTao"); XLSX.writeFile(wb, `YADEA_Report_${new Date().toISOString().slice(0,10)}.xlsx`); }
+
+    // --- 1. LOGIC QUẢN LÝ QUÀ TẶNG (CẬP NHẬT FILTER) ---
+    window.loadGifts = async () => {
+        const tb = document.getElementById('giftTableBody');
+        tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+        
+        // Fetch data
+        const snap = await getDocs(query(collection(db, "spin_history"), orderBy("timestamp", "desc"), limit(200)));
+        giftHistoryCache = []; 
+        
+        if(snap.empty) { 
+            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Chưa có ai trúng thưởng.</td></tr>'; 
+            return; 
+        }
+        
+        snap.forEach(d => {
+            const data = d.data();
+            data.id = d.id;
+            giftHistoryCache.push(data);
+        });
+
+        renderGiftTable();
+    }
+
+    window.renderGiftTable = () => {
+        const tb = document.getElementById('giftTableBody');
+        const filter = document.getElementById('filterGiftStatus').value;
+        tb.innerHTML = '';
+
+        let displayList = giftHistoryCache;
+        
+        // Filter logic
+        if (filter !== 'all') {
+            displayList = displayList.filter(g => (g.status || 'pending') === filter);
+        }
+
+        if(displayList.length === 0) {
+            tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-400">Không tìm thấy dữ liệu phù hợp.</td></tr>';
+            return;
+        }
+
+        displayList.forEach(data => {
+            const date = data.timestamp ? new Date(data.timestamp.seconds*1000).toLocaleString('vi-VN') : '';
+            const isSent = data.status === 'sent';
+            const statusHtml = isSent 
+                ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Đã trao</span>' 
+                : '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">Chờ trao</span>';
+            const btnHtml = isSent 
+                ? '<span class="text-gray-400 text-xs italic">Hoàn tất</span>'
+                : `<button onclick="markGiftSent('${data.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700">Xác nhận trao</button>`;
+            
+            let shipInfo = '<span class="text-gray-400 text-xs">Chưa cập nhật</span>';
+            if(data.shippingName || data.shippingPhone) {
+                shipInfo = `<div class="text-xs">
+                    <div class="font-bold text-gray-800"><i class="fa-solid fa-user"></i> ${data.shippingName || '---'}</div>
+                    <div class="text-gray-600"><i class="fa-solid fa-phone"></i> ${data.shippingPhone || '---'}</div>
+                    <div class="text-gray-500 truncate max-w-[150px]" title="${data.shippingAddress}"><i class="fa-solid fa-location-dot"></i> ${data.shippingAddress || '---'}</div>
+                </div>`;
+            }
+
+            tb.innerHTML += `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="p-4 text-xs text-gray-500">${date}</td>
+                <td class="p-4 font-bold text-gray-800">${data.name}</td>
+                <td class="p-4 text-gray-600 font-mono text-xs">${data.dvn}</td>
+                <td class="p-4 text-orange-600 font-bold">${data.prize}</td>
+                <td class="p-4">${shipInfo}</td>
+                <td class="p-4 text-center">${statusHtml}</td>
+                <td class="p-4 text-right">${btnHtml}</td>
+            </tr>`;
+        });
+    }
+
+    window.markGiftSent = async (id) => {
+        if(confirm("Xác nhận đã trao quà cho user này?")) {
+            await updateDoc(doc(db, "spin_history", id), { status: 'sent' });
+            loadGifts();
+        }
+    }
+
+    // --- FUNCTION XUẤT EXCEL QUÀ TẶNG ---
+    window.exportGiftHistory = () => {
+        if(giftHistoryCache.length === 0) return alert("Không có dữ liệu để xuất!");
+        
+        const data = giftHistoryCache.map(g => {
+            return {
+                "Thời gian": g.timestamp ? new Date(g.timestamp.seconds*1000).toLocaleString('vi-VN') : '',
+                "Tên Nhân Viên (TK)": g.name,
+                "Mã DVN": g.dvn,
+                "Phần Quà": g.prize,
+                "Người Nhận": g.shippingName || '',
+                "Số Điện Thoại": g.shippingPhone || '',
+                "Địa Chỉ Giao Hàng": g.shippingAddress || '',
+                "Trạng Thái": g.status === 'sent' ? "Đã trao" : "Chờ trao"
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "DanhSachTrungThuong");
+        XLSX.writeFile(wb, `QuaTang_YADEA_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    // --- 2. LOGIC SỬA ĐIỂM & LƯỢT QUAY (ĐÃ FIX TỰ TÍNH SAO) ---
+    let editingUserUid = null;
+    window.openEditUserModal = (uid, name, points, spins) => {
+        editingUserUid = uid;
+        document.getElementById('editPointName').textContent = `User: ${name}`;
+        document.getElementById('editInpPoints').value = points;
+        document.getElementById('editInpSpins').value = spins || 0;
+        document.getElementById('editPointModal').classList.remove('hidden');
+    }
+
+    window.saveUserPoints = async () => {
+        if(!editingUserUid) return;
+        const newPoints = parseInt(document.getElementById('editInpPoints').value) || 0;
+        const newSpins = parseInt(document.getElementById('editInpSpins').value) || 0;
+        
+        // TÍNH LẠI SAO
+        let newStars = 0;
+        if (newPoints >= 2000) newStars = 5;
+        else if (newPoints >= 1600) newStars = 4;
+        else if (newPoints >= 1200) newStars = 3;
+        else if (newPoints >= 800) newStars = 2;
+        else if (newPoints >= 500) newStars = 1;
+
+        const btn = document.querySelector('#editPointModal button:last-child');
+        btn.textContent = "..."; btn.disabled = true;
+
+        try {
+            await updateDoc(doc(db, "users", editingUserUid), {
+                points: newPoints,
+                spinsAvailable: newSpins,
+                stars: newStars
+            });
+            // Update Local Cache
+            const u = userCache.find(x => x.id === editingUserUid);
+            if(u) { u.points = newPoints; u.spinsAvailable = newSpins; u.stars = newStars; }
+            
+            alert(`Đã cập nhật: ${newPoints} điểm, ${newStars} sao!`);
+            document.getElementById('editPointModal').classList.add('hidden');
+            renderUserTable(); 
+        } catch(e) {
+            alert("Lỗi: " + e.message);
+        } finally {
+            btn.textContent = "Lưu thay đổi"; btn.disabled = false;
+        }
+    }
+
+    // --- 3. LOGIC IMPORT EXCEL TRẮC NGHIỆM ---
+    window.downloadQuizTemplate = () => {
+        const wb = XLSX.utils.book_new();
+        const ws_data = [
+            ["Câu hỏi", "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D", "Đáp án đúng (1=A, 2=B, 3=C, 4=D)"],
+            ["Thủ đô của VN là gì?", "HCM", "Hà Nội", "Đà Nẵng", "Cần Thơ", "2"],
+            ["Yadea là hãng xe nước nào?", "Việt Nam", "Mỹ", "Trung Quốc", "Đức", "3"]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Mau_Cau_Hoi");
+        XLSX.writeFile(wb, "Template_TracNghiem.xlsx");
+    }
+
+    window.importQuizExcel = (input) => {
+        if(!input.files[0]) return;
+        if(!curL) return alert("Vui lòng chọn hoặc tạo bài học trước!");
+        
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            
+            let count = 0;
+            for(let i=1; i<jsonData.length; i++) {
+                const row = jsonData[i];
+                if(row.length < 6) continue; 
+                
+                const qText = row[0];
+                const ops = [row[1], row[2], row[3], row[4]];
+                const correctIdx = parseInt(row[5]) - 1; 
+
+                if(qText && ops[0] && !isNaN(correctIdx)) {
+                    await addDoc(collection(db, "questions"), {
+                        lessonId: curL,
+                        text: String(qText),
+                        options: ops.map(String),
+                        correctIndex: correctIdx,
+                        createdAt: serverTimestamp()
+                    });
+                    count++;
+                }
+            }
+            alert(`Đã import thành công ${count} câu hỏi!`);
+            ldQ(curL); 
+            input.value = '';
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- 4. LOGIC CẤU HÌNH HỆ THỐNG ---
+    window.saveSystemSettings = async () => {
+        const text = document.getElementById('sysNotifText').value;
+        const status = document.getElementById('sysNotifStatus').value;
+        
+        try {
+            await setDoc(doc(db, "settings", "global"), {
+                notification: text,
+                showNotification: status === 'on',
+                updatedAt: serverTimestamp()
+            });
+            alert("Đã lưu cấu hình!");
+        } catch(e) {
+            alert("Lỗi: " + e.message);
+        }
+    }
+    
+    const loadSettings = async () => {
+        const d = await getDoc(doc(db, "settings", "global"));
+        if(d.exists()) {
+            document.getElementById('sysNotifText').value = d.data().notification || '';
+            document.getElementById('sysNotifStatus').value = d.data().showNotification ? 'on' : 'off';
+        }
+    }
 
     ldL(); loadUsers();
   </script>
