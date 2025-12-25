@@ -58,9 +58,11 @@
     .spin-btn-center::after { content: ''; position: absolute; right: -26px; top: 50%; transform: translateY(-50%); border-left: 30px solid #b45309; border-top: 14px solid transparent; border-bottom: 14px solid transparent; filter: drop-shadow(2px 0 2px rgba(0,0,0,0.2)); }
     .spin-btn-center:active { transform: translate(-50%, -50%) scale(0.95); }
     .wheel-label-container { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-    .wheel-label { position: absolute; top: 50%; left: 50%; width: 100px; height: 200px; margin-left: -50px; margin-top: -100px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; font-weight: 800; font-size: 13px; line-height: 1.1; padding-top: 20px; }
-    .wheel-label i { font-size: 24px; margin-bottom: 6px; }
-    @media (min-width: 768px) { .wheel-label { width: 140px; height: 250px; margin-left: -70px; margin-top: -125px; font-size: 16px; padding-top: 30px; } .wheel-label i { font-size: 32px; } }
+    
+    /* CẬP NHẬT: Tối ưu hiển thị chữ và icon trung tâm nan quạt */
+    .wheel-label { position: absolute; top: 50%; left: 50%; width: 100px; height: 200px; margin-left: -50px; margin-top: -100px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-weight: 800; font-size: 11px; line-height: 1.1; padding-top: 0; }
+    .wheel-label i { font-size: 20px; margin-bottom: 8px; }
+    @media (min-width: 768px) { .wheel-label { width: 140px; height: 250px; margin-left: -70px; margin-top: -125px; font-size: 16px; } .wheel-label i { font-size: 32px; } }
     
     .chat-btn-float { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; background: #f97316; border-radius: 50%; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; cursor: pointer; transition: transform 0.2s; z-index: 40; }
     .chat-box-container { position: fixed; bottom: 100px; right: 20px; width: 350px; height: 500px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 41; display: flex; flex-direction: column; overflow: hidden; transform-origin: bottom right; transition: all 0.3s ease; opacity: 0; pointer-events: none; transform: scale(0.8); border: 1px solid #e5e7eb; }
@@ -98,6 +100,7 @@
                 <img id="headerAvatar" src="https://ui-avatars.com/api/?name=User&background=random" class="w-10 h-10 rounded-full object-cover border border-gray-200">
             </div>
         </div>
+        
         <div class="md:hidden flex items-center gap-2">
              <div class="flex items-center gap-2 mr-1 cursor-pointer" onclick="openProfileModal()">
                  <img id="headerAvatarMobile" src="https://ui-avatars.com/api/?name=User&background=random" class="w-8 h-8 rounded-full object-cover border border-gray-200">
@@ -745,11 +748,32 @@
     document.getElementById('loginBtn').onclick = async () => { try { await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); } catch(e) { document.getElementById('loginError').textContent = "Lỗi đăng nhập!"; } };
     document.getElementById('registerBtn').onclick = async () => {
         const e = document.getElementById('regEmail').value, p = document.getElementById('regPassword').value, n = document.getElementById('regName').value, d = document.getElementById('regDvn').value, role = document.getElementById('regRole').value; if(!e||!p||!n||!d||!role) return alert("Điền đủ thông tin!");
-        try { const c = await createUserWithEmailAndPassword(auth, e, p); await setDoc(doc(db, "users", c.user.uid), { uid: c.user.uid, email: e, name: n, dvnCode: d, role: role, status: 'pending', createdAt: serverTimestamp(), points: 0, stars: 0 }); await signOut(auth); alert("Chờ duyệt!"); } catch(err) { alert(err.message); }
+        try { const c = await createUserWithEmailAndPassword(auth, e, p); await setDoc(doc(db, "users", c.user.uid), { uid: c.user.uid, email: e, name: n, dvnCode: d, role: role, status: 'pending', createdAt: serverTimestamp(), points: 0, stars: 0 }); await signOut(auth); alert("Đăng ký thành công! Vui lòng chờ quản trị viên duyệt tài khoản."); } catch(err) { alert(err.message); }
     };
     document.getElementById('logoutBtn').onclick = () => signOut(auth); document.getElementById('logoutBtnDesktop').onclick = () => signOut(auth);
 
-    onAuthStateChanged(auth, async (u) => { currentUser = u; if(u) { const d = await getDoc(doc(db, "users", u.uid)); if(d.exists()) { const data = d.data(); if(data.status === 'pending' || data.status === 'banned') { await signOut(auth); alert("Lỗi tài khoản!"); return; } document.getElementById('authOverlay').classList.add('hidden'); document.getElementById('userName').textContent = data.name; document.getElementById('userDvn').textContent = data.dvnCode; document.getElementById('chatBtn').classList.remove('hidden'); loadLessons(); listenToChat(); updateSpinUI(); } } else { document.getElementById('authOverlay').classList.remove('hidden'); } });
+    onAuthStateChanged(auth, async (u) => { 
+        currentUser = u; 
+        if(u) { 
+            const d = await getDoc(doc(db, "users", u.uid)); 
+            if(d.exists()) { 
+                const data = d.data(); 
+                if(data.status === 'pending' || data.status === 'banned') { 
+                    await signOut(auth); 
+                    // CẬP NHẬT: Thông báo trạng thái tài khoản chuyên nghiệp hơn
+                    alert(data.status === 'pending' ? "Tài khoản của bạn đang chờ quản trị viên duyệt." : "Tài khoản của bạn đã bị khóa."); 
+                    return; 
+                } 
+                document.getElementById('authOverlay').classList.add('hidden'); 
+                document.getElementById('userName').textContent = data.name; 
+                document.getElementById('userDvn').textContent = data.dvnCode; 
+                document.getElementById('chatBtn').classList.remove('hidden'); 
+                loadLessons(); listenToChat(); updateSpinUI(); 
+            } 
+        } else { 
+            document.getElementById('authOverlay').classList.remove('hidden'); 
+        } 
+    });
 
     async function checkSystemNotification() { const d = await getDoc(doc(db, "settings", "global")); if (d.exists() && d.data().showNotification) { const mq = document.getElementById('systemMarquee'); const txt = document.getElementById('marqueeText'); mq.classList.remove('hidden'); txt.textContent = d.data().notification; } }
     checkSystemNotification();
@@ -761,7 +785,18 @@
         const wheel = document.getElementById('wheel'), labelsContainer = document.getElementById('wheelLabels'), dotsContainer = document.getElementById('goldDotsContainer');
         if(dotsContainer.children.length === 0) { for(let i=0; i<24; i++) { const dot = document.createElement('div'); dot.className = 'gold-dot'; const angle = (i * (360/24)) * (Math.PI / 180), r = window.innerWidth < 768 ? 165 : 232; dot.style.left = `calc(50% + ${Math.cos(angle) * r}px - 7px)`; dot.style.top = `calc(50% + ${Math.sin(angle) * r}px - 7px)`; dotsContainer.appendChild(dot); } }
         let gradientStr = ""; labelsContainer.innerHTML = ''; const segAngle = 360 / prizes.length; 
-        prizes.forEach((p, i) => { gradientStr += `${p.color} ${i * segAngle}deg ${(i + 1) * segAngle}deg,`; const label = document.createElement('div'); label.className = 'wheel-label'; label.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label.replace(/\n/g, '<br/>')}</span>`; label.style.color = p.text; label.style.transform = `rotate(${i * segAngle + segAngle / 2}deg) translateY(${window.innerWidth < 768 ? -75 : -110}px)`; labelsContainer.appendChild(label); });
+        prizes.forEach((p, i) => { 
+            gradientStr += `${p.color} ${i * segAngle}deg ${(i + 1) * segAngle}deg,`; 
+            const label = document.createElement('div'); 
+            label.className = 'wheel-label'; 
+            label.innerHTML = `<i class="fa-solid ${p.icon}"></i><span>${p.label.replace(/\n/g, '<br/>')}</span>`; 
+            label.style.color = p.text; 
+            
+            // CẬP NHẬT: Điều chỉnh translateY để chữ nằm chính giữa nang quạt trên mobile
+            const dist = window.innerWidth < 768 ? -70 : -110;
+            label.style.transform = `rotate(${i * segAngle + segAngle / 2}deg) translateY(${dist}px)`; 
+            labelsContainer.appendChild(label); 
+        });
         wheel.style.background = `conic-gradient(${gradientStr.slice(0, -1)})`;
     }
 
